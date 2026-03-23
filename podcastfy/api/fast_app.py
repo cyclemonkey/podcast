@@ -1,12 +1,14 @@
 """
-FastAPI implementation for Podcastify podcast generation service.
+FastAPI implementation for Myers Podcast generation service.
 
 This module provides REST endpoints for podcast generation and audio serving,
 with configuration management and temporary file handling.
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+import secrets
+import logging
+from fastapi import FastAPI, HTTPException, Header
+from fastapi.responses import FileResponse
 import os
 import shutil
 import yaml
@@ -15,9 +17,34 @@ from pathlib import Path
 from ..client import generate_podcast
 import uvicorn
 
+logger = logging.getLogger(__name__)
+
+# Read API keys once at startup from environment (set via Render env vars)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+
+# APP_USERS format: "alice:secret1,bob:secret2"
+def _parse_users(raw: str) -> Dict[str, str]:
+    users = {}
+    for entry in raw.split(","):
+        entry = entry.strip()
+        if ":" in entry:
+            username, password = entry.split(":", 1)
+            users[username.strip()] = password.strip()
+    return users
+
+APP_USERS: Dict[str, str] = _parse_users(os.getenv("APP_USERS", ""))
+
+LLM_MODEL_MAP = {
+    "google": "gemini-2.5-flash",
+    "gemini": "gemini-2.5-flash",
+    "openai": "gpt-4o-mini",
+}
+
 
 def load_base_config() -> Dict[Any, Any]:
-    config_path = Path(__file__).parent / "podcastfy" / "conversation_config.yaml"
+    config_path = Path(__file__).parent.parent / "conversation_config.yaml"
     try:
         with open(config_path, 'r') as file:
             return yaml.safe_load(file)
@@ -28,45 +55,83 @@ def load_base_config() -> Dict[Any, Any]:
 def merge_configs(base_config: Dict[Any, Any], user_config: Dict[Any, Any]) -> Dict[Any, Any]:
     """Merge user configuration with base configuration, preferring user values."""
     merged = base_config.copy()
-    
+
     # Handle special cases for nested dictionaries
     if 'text_to_speech' in merged and 'text_to_speech' in user_config:
         merged['text_to_speech'].update(user_config.get('text_to_speech', {}))
-    
+
     # Update top-level keys
     for key, value in user_config.items():
         if key != 'text_to_speech':  # Skip text_to_speech as it's handled above
             if value is not None:  # Only update if value is not None
                 merged[key] = value
-                
+
     return merged
 
-app = FastAPI()
+
+def _check_password(data: dict, x_app_password: str = "") -> str:
+    """
+    Validate user credentials against APP_USERS and return the authenticated username.
+    Accepts credentials from the JSON body (user + password fields) or the
+    X-App-Password header (format: "username:password").
+    Returns the username so it can be logged.
+    If APP_USERS is not configured, open access is allowed (local dev).
+    """
+    if not APP_USERS:
+        return "anonymous"
+
+    # Extract from body first, then fall back to header
+    username = data.get("user", "")
+    password = data.get("password", "")
+    if not username and x_app_password and ":" in x_app_password:
+        username, password = x_app_password.split(":", 1)
+
+    if not username or not password:
+        raise HTTPException(status_code=401, detail="Authentication required: provide 'user' and 'password'")
+
+    expected = APP_USERS.get(username)
+    if expected is None or not secrets.compare_digest(password, expected):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    return username
+
+
+def _resolve_llm(alias: str) -> tuple:
+    """Map a user-friendly model alias to (model_name, api_key_label)."""
+    alias = (alias or "google").lower()
+    model_name = LLM_MODEL_MAP.get(alias, LLM_MODEL_MAP["google"])
+    api_key_label = "OPENAI_API_KEY" if "gpt" in model_name else "GEMINI_API_KEY"
+    return model_name, api_key_label
+
+
+app = FastAPI(title="Myers Podcast")
 
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp_audio")
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 @app.post("/generate")
-def generate_podcast_endpoint(data: dict):
-    """"""
+def generate_podcast_endpoint(
+    data: dict,
+    x_app_password: str = Header(default="", alias="X-App-Password"),
+):
     try:
-        # Set environment variables
-        os.environ['OPENAI_API_KEY'] = data.get('openai_key')
-        os.environ['GEMINI_API_KEY'] = data.get('google_key')
-        os.environ['ELEVENLABS_API_KEY'] = data.get('elevenlabs_key')
+        # --- Authentication ---
+        username = _check_password(data, x_app_password)
+        logger.info("Request from user: %s", username)
 
-        # Load base configuration
+        # --- Load base configuration ---
         base_config = load_base_config()
-        
-        # Get TTS model and its configuration from base config
+
+        # --- TTS model and voice resolution ---
         tts_model = data.get('tts_model', base_config.get('text_to_speech', {}).get('default_tts_model', 'openai'))
         tts_base_config = base_config.get('text_to_speech', {}).get(tts_model, {})
-        
-        # Get voices (use user-provided voices or fall back to defaults)
         voices = data.get('voices', {})
         default_voices = tts_base_config.get('default_voices', {})
-        
-        # Prepare user configuration
+
+        # --- LLM model resolution ---
+        llm_model_name, api_key_label = _resolve_llm(data.get('llm_model'))
+
+        # --- Build conversation config ---
         user_config = {
             'creativity': float(data.get('creativity', base_config.get('creativity', 0.7))),
             'conversation_style': data.get('conversation_style', base_config.get('conversation_style', [])),
@@ -88,22 +153,19 @@ def generate_podcast_endpoint(data: dict):
             }
         }
 
-        # print(user_config)
-
-        # Merge configurations
         conversation_config = merge_configs(base_config, user_config)
 
-        # print(conversation_config)
-        
-
-        # Generate podcast
+        # --- Generate podcast ---
         result = generate_podcast(
             urls=data.get('urls', []),
             conversation_config=conversation_config,
             tts_model=tts_model,
             longform=bool(data.get('is_long_form', False)),
+            llm_model_name=llm_model_name,
+            api_key_label=api_key_label,
         )
-        # Handle the result
+
+        # --- Handle result ---
         if isinstance(result, str) and os.path.isfile(result):
             filename = f"podcast_{os.urandom(8).hex()}.mp3"
             output_path = os.path.join(TEMP_DIR, filename)
@@ -117,12 +179,14 @@ def generate_podcast_endpoint(data: dict):
         else:
             raise HTTPException(status_code=500, detail="Invalid result format")
 
+    except HTTPException:
+        raise  # Re-raise auth/validation errors as-is
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/audio/{filename}")
 def serve_audio(filename: str):
-    """ Get File Audio From ther Server"""
+    """Get audio file from the server."""
     file_path = os.path.join(TEMP_DIR, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")

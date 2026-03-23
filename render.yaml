@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: myers-podcast
+    runtime: docker
+    dockerfilePath: ./Dockerfile_api
+    dockerContext: .
+    plan: standard
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: APP_USERS
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    healthCheckPath: /health
