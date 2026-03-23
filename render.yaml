@@ -1,10 +1,11 @@
 services:
   - type: web
     name: myers-podcast
-    runtime: docker
-    dockerfilePath: ./Dockerfile_api
-    dockerContext: .
-    plan: standard
+    runtime: python
+    buildCommand: >
+      pip install -r requirements.txt &&
+      python -m playwright install --with-deps chromium
+    startCommand: uvicorn podcastfy.api.fast_app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_API_KEY
         sync: false
