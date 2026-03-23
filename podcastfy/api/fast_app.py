@@ -6,6 +6,7 @@ with configuration management and temporary file handling.
 """
 
 import secrets
+import logging
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import FileResponse
 import os
@@ -16,11 +17,24 @@ from pathlib import Path
 from ..client import generate_podcast
 import uvicorn
 
+logger = logging.getLogger(__name__)
+
 # Read API keys once at startup from environment (set via Render env vars)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
-APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+
+# APP_USERS format: "alice:secret1,bob:secret2"
+def _parse_users(raw: str) -> Dict[str, str]:
+    users = {}
+    for entry in raw.split(","):
+        entry = entry.strip()
+        if ":" in entry:
+            username, password = entry.split(":", 1)
+            users[username.strip()] = password.strip()
+    return users
+
+APP_USERS: Dict[str, str] = _parse_users(os.getenv("APP_USERS", ""))
 
 LLM_MODEL_MAP = {
     "google": "gemini-2.5-flash",
@@ -55,17 +69,31 @@ def merge_configs(base_config: Dict[Any, Any], user_config: Dict[Any, Any]) -> D
     return merged
 
 
-def _check_password(data: dict, x_app_password: str = "") -> None:
-    """Raise HTTP 401 if the request does not supply the correct APP_PASSWORD."""
-    if not APP_PASSWORD:
-        # No password configured — open access (useful during local dev)
-        return
-    provided = data.get("password") or x_app_password
-    if not provided:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    # Use secrets.compare_digest to resist timing attacks
-    if not secrets.compare_digest(provided, APP_PASSWORD):
-        raise HTTPException(status_code=401, detail="Invalid password")
+def _check_password(data: dict, x_app_password: str = "") -> str:
+    """
+    Validate user credentials against APP_USERS and return the authenticated username.
+    Accepts credentials from the JSON body (user + password fields) or the
+    X-App-Password header (format: "username:password").
+    Returns the username so it can be logged.
+    If APP_USERS is not configured, open access is allowed (local dev).
+    """
+    if not APP_USERS:
+        return "anonymous"
+
+    # Extract from body first, then fall back to header
+    username = data.get("user", "")
+    password = data.get("password", "")
+    if not username and x_app_password and ":" in x_app_password:
+        username, password = x_app_password.split(":", 1)
+
+    if not username or not password:
+        raise HTTPException(status_code=401, detail="Authentication required: provide 'user' and 'password'")
+
+    expected = APP_USERS.get(username)
+    if expected is None or not secrets.compare_digest(password, expected):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    return username
 
 
 def _resolve_llm(alias: str) -> tuple:
@@ -88,7 +116,8 @@ def generate_podcast_endpoint(
 ):
     try:
         # --- Authentication ---
-        _check_password(data, x_app_password)
+        username = _check_password(data, x_app_password)
+        logger.info("Request from user: %s", username)
 
         # --- Load base configuration ---
         base_config = load_base_config()
