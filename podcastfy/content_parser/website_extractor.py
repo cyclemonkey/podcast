@@ -13,7 +13,12 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from podcastfy.utils.config import load_config
 from typing import List
-from playwright.sync_api import sync_playwright
+
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +82,9 @@ class WebsiteExtractor:
 		Returns:
 			str: The page HTML after network is idle.
 		"""
+		if not PLAYWRIGHT_AVAILABLE:
+			logger.warning("Playwright not installed, falling back to requests")
+			return self.fetch_with_requests(url)
 		try:
 			with sync_playwright() as p:
 				browser = p.chromium.launch(headless=True)

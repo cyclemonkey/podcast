@@ -2,9 +2,8 @@ services:
   - type: web
     name: myers-podcast
     runtime: python
-    buildCommand: >
-      pip install -r requirements.txt &&
-      python -m playwright install --with-deps chromium
+    buildCommand: pip install -r requirements.txt
+    plan: free
     startCommand: uvicorn podcastfy.api.fast_app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_API_KEY
