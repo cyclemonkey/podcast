@@ -7,13 +7,14 @@ with configuration management and temporary file handling.
 
 import secrets
 import logging
-from fastapi import FastAPI, HTTPException, Header
-from fastapi.responses import FileResponse, HTMLResponse
+import uuid
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import shutil
 import yaml
-from typing import Dict, Any
+from typing import Dict, Any, List
 from pathlib import Path
 from ..client import generate_podcast
 import uvicorn
@@ -110,6 +111,12 @@ app = FastAPI(title="Myers Podcast")
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp_audio")
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {".pdf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".gif"}
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
+
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 
 @app.get("/")
@@ -118,6 +125,51 @@ def root():
     if index.exists():
         return HTMLResponse(index.read_text())
     return {"service": "Myers Podcast", "status": "running", "docs": "/docs"}
+
+@app.post("/upload")
+async def upload_files(files: List[UploadFile] = File(...)):
+    """Upload files (PDF, TXT, images) for podcast generation."""
+    uploaded = []
+    for f in files:
+        ext = Path(f.filename).suffix.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {ext}. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
+            )
+        content = await f.read()
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail=f"File too large: {f.filename} (max 20 MB)")
+        file_id = uuid.uuid4().hex[:12]
+        safe_name = f"{file_id}{ext}"
+        dest = os.path.join(UPLOAD_DIR, safe_name)
+        with open(dest, "wb") as out:
+            out.write(content)
+        uploaded.append({"id": safe_name, "name": f.filename, "size": len(content)})
+    return {"files": uploaded}
+
+
+@app.get("/files")
+def list_uploaded_files():
+    """List all uploaded files."""
+    files = []
+    for name in sorted(os.listdir(UPLOAD_DIR)):
+        path = os.path.join(UPLOAD_DIR, name)
+        if os.path.isfile(path):
+            files.append({"id": name, "size": os.path.getsize(path)})
+    return {"files": files}
+
+
+@app.delete("/files/{file_id}")
+def delete_uploaded_file(file_id: str):
+    """Delete an uploaded file."""
+    safe = Path(file_id).name  # prevent path traversal
+    path = os.path.join(UPLOAD_DIR, safe)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    os.remove(path)
+    return {"deleted": safe}
+
 
 @app.post("/generate")
 def generate_podcast_endpoint(
@@ -165,15 +217,39 @@ def generate_podcast_endpoint(
 
         conversation_config = merge_configs(base_config, user_config)
 
+        # --- Resolve uploaded file IDs to local paths ---
+        urls = list(data.get('urls', []))
+        image_paths = []
+        text_input = data.get('text', '')
+        for fid in data.get('file_ids', []):
+            safe = Path(fid).name
+            fpath = os.path.join(UPLOAD_DIR, safe)
+            if not os.path.isfile(fpath):
+                raise HTTPException(status_code=400, detail=f"Uploaded file not found: {fid}")
+            ext = Path(fpath).suffix.lower()
+            if ext == '.pdf':
+                urls.append(fpath)
+            elif ext == '.txt':
+                text_input += "\n" + Path(fpath).read_text(errors='replace')
+            elif ext in {'.png', '.jpg', '.jpeg', '.webp', '.gif'}:
+                image_paths.append(fpath)
+
         # --- Generate podcast ---
-        result = generate_podcast(
-            urls=data.get('urls', []),
+        gen_kwargs = dict(
             conversation_config=conversation_config,
             tts_model=tts_model,
             longform=bool(data.get('is_long_form', False)),
             llm_model_name=llm_model_name,
             api_key_label=api_key_label,
         )
+        if urls:
+            gen_kwargs['urls'] = urls
+        if image_paths:
+            gen_kwargs['image_paths'] = image_paths
+        if text_input.strip():
+            gen_kwargs['text'] = text_input.strip()
+
+        result = generate_podcast(**gen_kwargs)
 
         # --- Handle result ---
         if isinstance(result, str) and os.path.isfile(result):
