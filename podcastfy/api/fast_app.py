@@ -8,7 +8,8 @@ with configuration management and temporary file handling.
 import secrets
 import logging
 from fastapi import FastAPI, HTTPException, Header
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import os
 import shutil
 import yaml
@@ -109,8 +110,13 @@ app = FastAPI(title="Myers Podcast")
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp_audio")
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
+
 @app.get("/")
 def root():
+    index = FRONTEND_DIR / "index.html"
+    if index.exists():
+        return HTMLResponse(index.read_text())
     return {"service": "Myers Podcast", "status": "running", "docs": "/docs"}
 
 @app.post("/generate")
