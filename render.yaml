@@ -2,6 +2,7 @@ services:
   - type: web
     name: myers-podcast
     runtime: python
+    pythonVersion: "3.12"
     buildCommand: pip install -r requirements.txt
     plan: free
     startCommand: uvicorn podcastfy.api.fast_app:app --host 0.0.0.0 --port $PORT
