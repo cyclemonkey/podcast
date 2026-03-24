@@ -109,6 +109,87 @@ app = FastAPI(title="Myers Podcast")
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp_audio")
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {".pdf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".gif"}
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
+
+@app.get("/")
+def root():
+    index = FRONTEND_DIR / "index.html"
+    if index.exists():
+        return HTMLResponse(index.read_text())
+    return {"service": "Myers Podcast", "status": "running", "docs": "/docs"}
+
+@app.post("/auth")
+def check_auth(data: dict):
+    """Validate credentials without generating anything. Returns auth_required flag."""
+    if not APP_USERS:
+        return {"authenticated": True, "auth_required": False, "user": "anonymous"}
+    username = data.get("user", "")
+    password = data.get("password", "")
+    if not username or not password:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    expected = APP_USERS.get(username)
+    if expected is None or not secrets.compare_digest(password, expected):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"authenticated": True, "auth_required": True, "user": username}
+
+
+@app.get("/auth/status")
+def auth_status():
+    """Check whether authentication is required (no credentials needed)."""
+    return {"auth_required": bool(APP_USERS)}
+
+
+@app.post("/upload")
+async def upload_files(files: List[UploadFile] = File(...)):
+    """Upload files (PDF, TXT, images) for podcast generation."""
+    uploaded = []
+    for f in files:
+        ext = Path(f.filename).suffix.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {ext}. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
+            )
+        content = await f.read()
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail=f"File too large: {f.filename} (max 20 MB)")
+        file_id = uuid.uuid4().hex[:12]
+        safe_name = f"{file_id}{ext}"
+        dest = os.path.join(UPLOAD_DIR, safe_name)
+        with open(dest, "wb") as out:
+            out.write(content)
+        uploaded.append({"id": safe_name, "name": f.filename, "size": len(content)})
+    return {"files": uploaded}
+
+
+@app.get("/files")
+def list_uploaded_files():
+    """List all uploaded files."""
+    files = []
+    for name in sorted(os.listdir(UPLOAD_DIR)):
+        path = os.path.join(UPLOAD_DIR, name)
+        if os.path.isfile(path):
+            files.append({"id": name, "size": os.path.getsize(path)})
+    return {"files": files}
+
+
+@app.delete("/files/{file_id}")
+def delete_uploaded_file(file_id: str):
+    """Delete an uploaded file."""
+    safe = Path(file_id).name  # prevent path traversal
+    path = os.path.join(UPLOAD_DIR, safe)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    os.remove(path)
+    return {"deleted": safe}
+
+
 @app.post("/generate")
 def generate_podcast_endpoint(
     data: dict,
