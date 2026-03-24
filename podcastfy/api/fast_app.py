@@ -7,12 +7,14 @@ with configuration management and temporary file handling.
 
 import secrets
 import logging
-from fastapi import FastAPI, HTTPException, Header
-from fastapi.responses import FileResponse
+import uuid
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 import os
 import shutil
 import yaml
-from typing import Dict, Any
+from typing import Dict, Any, List
 from pathlib import Path
 from ..client import generate_podcast
 import uvicorn
@@ -145,6 +147,7 @@ def auth_status():
     return {"auth_required": bool(APP_USERS)}
 
 
+
 @app.post("/upload")
 async def upload_files(files: List[UploadFile] = File(...)):
     """Upload files (PDF, TXT, images) for podcast generation."""
@@ -236,15 +239,39 @@ def generate_podcast_endpoint(
 
         conversation_config = merge_configs(base_config, user_config)
 
+        # --- Resolve uploaded file IDs to local paths ---
+        urls = list(data.get('urls', []))
+        image_paths = []
+        text_input = data.get('text', '')
+        for fid in data.get('file_ids', []):
+            safe = Path(fid).name
+            fpath = os.path.join(UPLOAD_DIR, safe)
+            if not os.path.isfile(fpath):
+                raise HTTPException(status_code=400, detail=f"Uploaded file not found: {fid}")
+            ext = Path(fpath).suffix.lower()
+            if ext == '.pdf':
+                urls.append(fpath)
+            elif ext == '.txt':
+                text_input += "\n" + Path(fpath).read_text(errors='replace')
+            elif ext in {'.png', '.jpg', '.jpeg', '.webp', '.gif'}:
+                image_paths.append(fpath)
+
         # --- Generate podcast ---
-        result = generate_podcast(
-            urls=data.get('urls', []),
+        gen_kwargs = dict(
             conversation_config=conversation_config,
             tts_model=tts_model,
             longform=bool(data.get('is_long_form', False)),
             llm_model_name=llm_model_name,
             api_key_label=api_key_label,
         )
+        if urls:
+            gen_kwargs['urls'] = urls
+        if image_paths:
+            gen_kwargs['image_paths'] = image_paths
+        if text_input.strip():
+            gen_kwargs['text'] = text_input.strip()
+
+        result = generate_podcast(**gen_kwargs)
 
         # --- Handle result ---
         if isinstance(result, str) and os.path.isfile(result):

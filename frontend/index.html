@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myers Podcast</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Auth banner */
+        .auth-bar {
+            display: none;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-bar.visible { display: block; }
+
+        .auth-bar h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            margin-bottom: 0.75rem;
+        }
+
+        .auth-row {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .auth-row input { flex: 1; }
+
+        /* Card */
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card h2 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        /* Inputs */
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 0.3rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #555;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .field { margin-bottom: 1rem; }
+        .field:last-child { margin-bottom: 0; }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* URL list */
+        .url-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .url-entry {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .url-entry input { flex: 1; }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #111;
+            color: #888;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+
+        .btn-icon:hover {
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        .btn-icon.remove:hover {
+            border-color: #c0392b;
+            color: #e74c3c;
+        }
+
+        /* File upload */
+        .drop-zone {
+            border: 2px dashed #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #555;
+            background: #1e1e1e;
+        }
+
+        .drop-zone-text {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .drop-zone-text strong {
+            color: #bbb;
+        }
+
+        .drop-zone-hint {
+            color: #555;
+            font-size: 0.75rem;
+            margin-top: 0.35rem;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .file-item .file-icon {
+            color: #666;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .file-item .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #ccc;
+        }
+
+        .file-item .file-size {
+            color: #555;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .file-item .file-remove {
+            color: #555;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 0.25rem;
+            transition: color 0.15s;
+        }
+
+        .file-item .file-remove:hover { color: #e74c3c; }
+
+        .file-item.uploading { opacity: 0.5; }
+
+        /* Tabs for sources */
+        .source-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .source-tab {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .source-tab:hover { color: #aaa; }
+
+        .source-tab.active {
+            color: #fff;
+            border-bottom-color: #fff;
+        }
+
+        .source-panel { display: none; }
+        .source-panel.active { display: block; }
+
+        /* Toggle */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+        }
+
+        .toggle-row span { font-size: 0.9rem; }
+
+        .toggle {
+            width: 44px;
+            height: 24px;
+            background: #333;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle.on { background: #2ecc71; }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s;
+        }
+
+        .toggle.on::after {
+            transform: translateX(20px);
+        }
+
+        /* Collapsible */
+        .collapse-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapse-toggle .arrow {
+            color: #666;
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+
+        .collapse-toggle.open .arrow {
+            transform: rotate(90deg);
+        }
+
+        .collapse-body {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .collapse-body.open { display: block; }
+
+        /* Generate button */
+        .btn-generate {
+            width: 100%;
+            padding: 0.85rem;
+            border: none;
+            border-radius: 10px;
+            background: #fff;
+            color: #000;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        .btn-generate:hover { opacity: 0.9; }
+
+        .btn-generate:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Progress */
+        .progress {
+            display: none;
+            margin-top: 1.25rem;
+        }
+
+        .progress.visible { display: block; }
+
+        .progress-bar-track {
+            width: 100%;
+            height: 4px;
+            background: #2a2a2a;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: #fff;
+            border-radius: 2px;
+            width: 0%;
+            animation: indeterminate 1.5s ease-in-out infinite;
+        }
+
+        @keyframes indeterminate {
+            0% { width: 0%; margin-left: 0; }
+            50% { width: 60%; margin-left: 20%; }
+            100% { width: 0%; margin-left: 100%; }
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #888;
+            font-size: 0.85rem;
+            margin-top: 0.75rem;
+        }
+
+        /* Audio player */
+        .player {
+            display: none;
+            margin-top: 1.25rem;
+        }
+
+        .player.visible { display: block; }
+
+        .player-card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .player-card h3 {
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            color: #fff;
+        }
+
+        .player-card audio {
+            width: 100%;
+            margin-bottom: 0.75rem;
+        }
+
+        .btn-download {
+            display: inline-block;
+            padding: 0.5rem 1.25rem;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: transparent;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .btn-download:hover {
+            border-color: #555;
+            background: #222;
+        }
+
+        /* Error */
+        .error-msg {
+            display: none;
+            background: #2d1515;
+            border: 1px solid #5c2020;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-top: 1.25rem;
+            color: #f5a5a5;
+            font-size: 0.9rem;
+        }
+
+        .error-msg.visible { display: block; }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .row, .row-3 { grid-template-columns: 1fr; }
+            .auth-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Myers Podcast</h1>
+            <p>Your Personal Generative AI Podcast</p>
+        </header>
+
+        <!-- Auth -->
+        <div class="auth-bar" id="authBar">
+            <h3>Login</h3>
+            <div class="auth-row">
+                <input type="text" id="authUser" placeholder="Username">
+                <input type="password" id="authPass" placeholder="Password">
+            </div>
+        </div>
+
+        <!-- Content Sources -->
+        <div class="card">
+            <h2>Content Sources</h2>
+
+            <div class="source-tabs">
+                <div class="source-tab active" onclick="switchTab('urls')">URLs</div>
+                <div class="source-tab" onclick="switchTab('files')">Files</div>
+                <div class="source-tab" onclick="switchTab('text')">Text</div>
+            </div>
+
+            <!-- URLs panel -->
+            <div class="source-panel active" id="panel-urls">
+                <div class="url-list" id="urlList">
+                    <div class="url-entry">
+                        <input type="url" placeholder="Paste a URL (webpage, YouTube, PDF...)" class="url-input">
+                        <button class="btn-icon remove" onclick="removeUrl(this)" title="Remove">&times;</button>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="addUrl()" title="Add URL" style="margin-left:auto; display:flex;">+</button>
+            </div>
+
+            <!-- Files panel -->
+            <div class="source-panel" id="panel-files">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-text"><strong>Drop files here</strong> or click to browse</div>
+                    <div class="drop-zone-hint">PDF, TXT, PNG, JPG, WEBP, GIF (max 20 MB each)</div>
+                    <input type="file" id="fileInput" multiple accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none">
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <!-- Text panel -->
+            <div class="source-panel" id="panel-text">
+                <textarea id="textInput" placeholder="Paste or type text content directly..." style="min-height:120px"></textarea>
+            </div>
+        </div>
+
+        <!-- Options -->
+        <div class="card">
+            <h2>Options</h2>
+            <div class="row-3 field">
+                <div>
+                    <label>TTS Provider</label>
+                    <select id="ttsModel">
+                        <option value="edge">Edge (free)</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="elevenlabs">ElevenLabs</option>
+                        <option value="geminimulti">Gemini Multi</option>
+                    </select>
+                </div>
+                <div>
+                    <label>LLM Model</label>
+                    <select id="llmModel">
+                        <option value="gemini">Gemini</option>
+                        <option value="openai">OpenAI</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Language</label>
+                    <input type="text" id="language" value="English" placeholder="e.g. Spanish">
+                </div>
+            </div>
+
+            <div class="field toggle-row">
+                <span>Long-form podcast</span>
+                <div class="toggle" id="longForm" onclick="this.classList.toggle('on')"></div>
+            </div>
+
+            <!-- Advanced -->
+            <div class="collapse-toggle" id="advancedToggle" onclick="toggleAdvanced()">
+                <h2 style="margin-bottom:0">Advanced Settings</h2>
+                <span class="arrow">&#9654;</span>
+            </div>
+            <div class="collapse-body" id="advancedBody">
+                <div class="row field">
+                    <div>
+                        <label>Voice 1 (question)</label>
+                        <input type="text" id="voiceQ" placeholder="Default from config">
+                    </div>
+                    <div>
+                        <label>Voice 2 (answer)</label>
+                        <input type="text" id="voiceA" placeholder="Default from config">
+                    </div>
+                </div>
+                <div class="row field">
+                    <div>
+                        <label>Creativity (0-1)</label>
+                        <input type="number" id="creativity" min="0" max="1" step="0.1" placeholder="1">
+                    </div>
+                    <div>
+                        <label>Podcast Name</label>
+                        <input type="text" id="podcastName" placeholder="Myers Podcast">
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Custom Instructions</label>
+                    <textarea id="instructions" placeholder="Extra instructions for the AI conversation..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate -->
+        <button class="btn-generate" id="btnGenerate" onclick="generate()">Generate Podcast</button>
+
+        <!-- Progress -->
+        <div class="progress" id="progress">
+            <div class="progress-bar-track"><div class="progress-bar-fill"></div></div>
+            <div class="progress-text" id="progressText">Generating podcast... this may take a few minutes</div>
+        </div>
+
+        <!-- Error -->
+        <div class="error-msg" id="errorMsg"></div>
+
+        <!-- Player -->
+        <div class="player" id="player">
+            <div class="player-card">
+                <h3>Your Podcast</h3>
+                <audio controls id="audioEl"></audio>
+                <br>
+                <a class="btn-download" id="downloadLink" download="podcast.mp3">Download MP3</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Uploaded files state ---
+        let uploadedFiles = []; // [{id, name, size}]
+
+        // --- Tabs ---
+        function switchTab(tab) {
+            document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.source-panel').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.source-tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById('panel-' + tab).classList.add('active');
+        }
+
+        // --- URLs ---
+        function addUrl() {
+            const list = document.getElementById('urlList');
+            const entry = document.createElement('div');
+            entry.className = 'url-entry';
+            entry.innerHTML = `
+                <input type="url" placeholder="Paste a URL (webpage, YouTube, PDF...)" class="url-input">
+                <button class="btn-icon remove" onclick="removeUrl(this)" title="Remove">&times;</button>
+            `;
+            list.appendChild(entry);
+            entry.querySelector('input').focus();
+        }
+
+        function removeUrl(btn) {
+            const list = document.getElementById('urlList');
+            if (list.children.length > 1) {
+                btn.parentElement.remove();
+            }
+        }
+
+        // --- File upload ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', () => {
+            handleFiles(fileInput.files);
+            fileInput.value = '';
+        });
+
+        async function handleFiles(fileList) {
+            if (!fileList.length) return;
+
+            const formData = new FormData();
+            for (const f of fileList) {
+                formData.append('files', f);
+            }
+
+            // Show uploading state
+            const tempItems = [];
+            for (const f of fileList) {
+                const el = addFileItem(f.name, f.size, null, true);
+                tempItems.push(el);
+            }
+
+            try {
+                const resp = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+                    throw new Error(err.detail || 'Upload failed');
+                }
+
+                const data = await resp.json();
+
+                // Remove temp items, add real ones
+                tempItems.forEach(el => el.remove());
+                for (const f of data.files) {
+                    uploadedFiles.push(f);
+                    addFileItem(f.name, f.size, f.id, false);
+                }
+            } catch (e) {
+                tempItems.forEach(el => el.remove());
+                showError(e.message);
+            }
+        }
+
+        function addFileItem(name, size, id, uploading) {
+            const list = document.getElementById('fileList');
+            const el = document.createElement('div');
+            el.className = 'file-item' + (uploading ? ' uploading' : '');
+            if (id) el.dataset.fileId = id;
+
+            const ext = name.split('.').pop().toLowerCase();
+            const icons = { pdf: 'PDF', txt: 'TXT', png: 'IMG', jpg: 'IMG', jpeg: 'IMG', webp: 'IMG', gif: 'IMG' };
+            const icon = icons[ext] || 'FILE';
+
+            const sizeStr = size < 1024 ? size + ' B'
+                : size < 1048576 ? (size / 1024).toFixed(1) + ' KB'
+                : (size / 1048576).toFixed(1) + ' MB';
+
+            el.innerHTML = `
+                <span class="file-icon">${icon}</span>
+                <span class="file-name">${escapeHtml(name)}</span>
+                <span class="file-size">${sizeStr}</span>
+                ${uploading ? '<span class="file-size">uploading...</span>' : `<span class="file-remove" onclick="removeFile(this, '${id}')">&times;</span>`}
+            `;
+            list.appendChild(el);
+            return el;
+        }
+
+        async function removeFile(btn, fileId) {
+            try {
+                await fetch('/files/' + fileId, { method: 'DELETE' });
+            } catch (e) {
+                // ignore delete errors
+            }
+            uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
+            btn.closest('.file-item').remove();
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        // --- Advanced ---
+        function toggleAdvanced() {
+            document.getElementById('advancedToggle').classList.toggle('open');
+            document.getElementById('advancedBody').classList.toggle('open');
+        }
+
+        function show(id) { document.getElementById(id).classList.add('visible'); }
+        function hide(id) { document.getElementById(id).classList.remove('visible'); }
+
+        // Show auth bar by default
+        document.getElementById('authBar').classList.add('visible');
+
+        // --- Generate ---
+        async function generate() {
+            const urls = Array.from(document.querySelectorAll('.url-input'))
+                .map(i => i.value.trim())
+                .filter(u => u.length > 0);
+
+            const fileIds = uploadedFiles.map(f => f.id);
+            const textContent = document.getElementById('textInput').value.trim();
+
+            if (urls.length === 0 && fileIds.length === 0 && !textContent) {
+                showError('Please add at least one URL, upload a file, or enter text.');
+                return;
+            }
+
+            const body = {
+                urls: urls,
+                file_ids: fileIds,
+                tts_model: document.getElementById('ttsModel').value,
+                llm_model: document.getElementById('llmModel').value,
+                output_language: document.getElementById('language').value || 'English',
+                is_long_form: document.getElementById('longForm').classList.contains('on'),
+            };
+
+            if (textContent) body.text = textContent;
+
+            // Auth
+            const user = document.getElementById('authUser').value.trim();
+            const pass = document.getElementById('authPass').value.trim();
+            if (user && pass) {
+                body.user = user;
+                body.password = pass;
+            }
+
+            // Advanced
+            const voiceQ = document.getElementById('voiceQ').value.trim();
+            const voiceA = document.getElementById('voiceA').value.trim();
+            if (voiceQ || voiceA) {
+                body.voices = {};
+                if (voiceQ) body.voices.question = voiceQ;
+                if (voiceA) body.voices.answer = voiceA;
+            }
+
+            const creativity = document.getElementById('creativity').value;
+            if (creativity) body.creativity = parseFloat(creativity);
+
+            const name = document.getElementById('podcastName').value.trim();
+            if (name) body.name = name;
+
+            const instructions = document.getElementById('instructions').value.trim();
+            if (instructions) body.user_instructions = instructions;
+
+            // UI state
+            hide('errorMsg');
+            hide('player');
+            show('progress');
+            document.getElementById('btnGenerate').disabled = true;
+            document.getElementById('progressText').textContent = 'Generating podcast... this may take a few minutes';
+
+            try {
+                const resp = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+                    throw new Error(err.detail || 'Generation failed');
+                }
+
+                const data = await resp.json();
+                const audioUrl = data.audioUrl;
+
+                document.getElementById('audioEl').src = audioUrl;
+                document.getElementById('downloadLink').href = audioUrl;
+                show('player');
+            } catch (e) {
+                showError(e.message);
+            } finally {
+                hide('progress');
+                document.getElementById('btnGenerate').disabled = false;
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            show('errorMsg');
+        }
+    </script>
+</body>
+</html>
