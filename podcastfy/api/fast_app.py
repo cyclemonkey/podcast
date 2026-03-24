@@ -126,6 +126,28 @@ def root():
         return HTMLResponse(index.read_text())
     return {"service": "Myers Podcast", "status": "running", "docs": "/docs"}
 
+@app.post("/auth")
+def check_auth(data: dict):
+    """Validate credentials without generating anything. Returns auth_required flag."""
+    if not APP_USERS:
+        return {"authenticated": True, "auth_required": False, "user": "anonymous"}
+    username = data.get("user", "")
+    password = data.get("password", "")
+    if not username or not password:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    expected = APP_USERS.get(username)
+    if expected is None or not secrets.compare_digest(password, expected):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"authenticated": True, "auth_required": True, "user": username}
+
+
+@app.get("/auth/status")
+def auth_status():
+    """Check whether authentication is required (no credentials needed)."""
+    return {"auth_required": bool(APP_USERS)}
+
+
+
 @app.post("/upload")
 async def upload_files(files: List[UploadFile] = File(...)):
     """Upload files (PDF, TXT, images) for podcast generation."""
