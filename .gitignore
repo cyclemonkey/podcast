@@ -84,8 +84,8 @@ coverage.xml
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# pyenv
-.python-version
+# pyenv (tracked for Render deployment Python version pinning)
+# .python-version
 
 # Environments
 .env
