@@ -109,6 +109,10 @@ app = FastAPI(title="Myers Podcast")
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp_audio")
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+@app.get("/")
+def root():
+    return {"service": "Myers Podcast", "status": "running", "docs": "/docs"}
+
 @app.post("/generate")
 def generate_podcast_endpoint(
     data: dict,
