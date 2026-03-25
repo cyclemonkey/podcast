@@ -21,6 +21,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - default
+      - coolify
+
+networks:
+  coolify:
+    external: true
 
 volumes:
   audio_data:
