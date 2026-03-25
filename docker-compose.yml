@@ -22,39 +22,6 @@ services:
       retries: 3
       start_period: 60s
 
-  podcastfy-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - .:/app
-      - /opt/venv:/opt/venv
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - PYTHONPATH=/app
-      - DEBIAN_FRONTEND=noninteractive
-    ports:
-      - "8001:8000"
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import podcastfy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  test:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - .:/app
-      - /opt/venv:/opt/venv
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - PYTHONPATH=/app
-    command: pytest -n auto --dist loadfile
-
 volumes:
   audio_data:
   upload_data:
