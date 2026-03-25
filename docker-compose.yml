@@ -10,8 +10,6 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
       - APP_USERS=${APP_USERS}
-    ports:
-      - "8000:8000"
     volumes:
       - audio_data:/app/podcastfy/api/temp_audio
       - upload_data:/app/podcastfy/api/uploads
