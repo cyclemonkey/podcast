@@ -4,17 +4,23 @@ services:
   podcastfy:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile_api
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - APP_USERS=${APP_USERS}
     ports:
       - "8000:8000"
+    volumes:
+      - audio_data:/app/podcastfy/api/temp_audio
+      - upload_data:/app/podcastfy/api/uploads
     healthcheck:
-      test: ["CMD", "python3", "-c", "import podcastfy"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
 
   podcastfy-dev:
     build:
@@ -48,3 +54,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - PYTHONPATH=/app
     command: pytest -n auto --dist loadfile
+
+volumes:
+  audio_data:
+  upload_data:
