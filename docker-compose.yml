@@ -23,6 +23,7 @@ services:
       start_period: 60s
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
       - "traefik.http.services.podcastfy.loadbalancer.server.port=8000"
     networks:
       - default
