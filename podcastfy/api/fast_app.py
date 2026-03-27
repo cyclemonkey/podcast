@@ -37,8 +37,8 @@ APP_URL                 = os.getenv("APP_URL", "").rstrip("/")
 SESSION_SECRET          = os.getenv("SESSION_SECRET", "change-me-in-production")
 
 LLM_MODEL_MAP = {
-    "google": "gemini-2.5-flash",
-    "gemini": "gemini-2.5-flash",
+    "google": "gemini-2.0-flash",
+    "gemini": "gemini-2.0-flash",
     "openai": "gpt-4o-mini",
 }
 
