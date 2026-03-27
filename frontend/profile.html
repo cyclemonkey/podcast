@@ -436,8 +436,11 @@
                 const resp = await fetch('/profile');
                 if (!resp.ok) return;
                 const p = await resp.json();
-                _setKeyStatus('statusGemini',    p.gemini_key_set);
-                _setKeyStatus('statusOpenAI',    p.openai_key_set);
+                if (p.gemini_key)     document.getElementById('keyGemini').value     = p.gemini_key;
+                if (p.openai_key)     document.getElementById('keyOpenAI').value     = p.openai_key;
+                if (p.elevenlabs_key) document.getElementById('keyElevenLabs').value = p.elevenlabs_key;
+                _setKeyStatus('statusGemini',     p.gemini_key_set);
+                _setKeyStatus('statusOpenAI',     p.openai_key_set);
                 _setKeyStatus('statusElevenLabs', p.elevenlabs_key_set);
             } catch (e) {}
         }
@@ -455,9 +458,6 @@
                     body: JSON.stringify(payload),
                 });
                 if (!resp.ok) throw new Error('Save failed');
-                document.getElementById('keyGemini').value    = '';
-                document.getElementById('keyOpenAI').value    = '';
-                document.getElementById('keyElevenLabs').value = '';
                 await loadApiKeys();
                 showToast('API keys saved.');
             } catch (e) {

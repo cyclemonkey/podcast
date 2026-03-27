@@ -218,10 +218,13 @@ async def me(request: Request):
 
 @app.get("/profile")
 async def get_profile(request: Request):
-    """Return the current user's stored API keys (values masked)."""
+    """Return the current user's stored API keys."""
     username = _session_user(request) or "anonymous"
     profile = _load_profile(username)
     return {
+        "gemini_key":         profile.get("gemini_key", ""),
+        "openai_key":         profile.get("openai_key", ""),
+        "elevenlabs_key":     profile.get("elevenlabs_key", ""),
         "gemini_key_set":     bool(profile.get("gemini_key")),
         "openai_key_set":     bool(profile.get("openai_key")),
         "elevenlabs_key_set": bool(profile.get("elevenlabs_key")),

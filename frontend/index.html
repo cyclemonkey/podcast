@@ -567,13 +567,13 @@
                 <div class="row field">
                     <div>
                         <label>Voice 1 (question)</label>
-                        <input type="text" id="voiceQ" placeholder="Default" list="voiceQList" autocomplete="off">
-                        <datalist id="voiceQList"></datalist>
+                        <select id="voiceQSelect" onchange="onVoiceChange('Q')"></select>
+                        <input type="text" id="voiceQ" placeholder="Enter voice name" style="display:none;margin-top:0.5rem">
                     </div>
                     <div>
                         <label>Voice 2 (answer)</label>
-                        <input type="text" id="voiceA" placeholder="Default" list="voiceAList" autocomplete="off">
-                        <datalist id="voiceAList"></datalist>
+                        <select id="voiceASelect" onchange="onVoiceChange('A')"></select>
+                        <input type="text" id="voiceA" placeholder="Enter voice name" style="display:none;margin-top:0.5rem">
                     </div>
                 </div>
                 <div class="row field">
@@ -793,13 +793,30 @@
             },
         };
 
+        function buildVoiceSelect(selectEl, voices) {
+            const prev = selectEl.value;
+            selectEl.innerHTML = '<option value="">— Default —</option>'
+                + voices.map(v => `<option value="${v}">${v}</option>`).join('')
+                + '<option value="__custom__">Custom (type below)...</option>';
+            if (prev && voices.includes(prev)) selectEl.value = prev;
+        }
+
+        function onVoiceChange(which) {
+            const sel = document.getElementById('voiceSelect' .replace('Select', which === 'Q' ? 'QSelect' : 'ASelect'));
+            const inp = document.getElementById('voice' + which);
+            // resolve correct select id
+            const selectEl = document.getElementById('voice' + which + 'Select');
+            inp.style.display = selectEl.value === '__custom__' ? '' : 'none';
+            if (selectEl.value !== '__custom__') inp.value = '';
+        }
+
         function updateVoicePresets() {
             const model = document.getElementById('ttsModel').value;
             const presets = VOICE_PRESETS[model] || { q: [], a: [] };
-            const dlQ = document.getElementById('voiceQList');
-            const dlA = document.getElementById('voiceAList');
-            dlQ.innerHTML = presets.q.map(v => `<option value="${v}">`).join('');
-            dlA.innerHTML = presets.a.map(v => `<option value="${v}">`).join('');
+            buildVoiceSelect(document.getElementById('voiceQSelect'), presets.q);
+            buildVoiceSelect(document.getElementById('voiceASelect'), presets.a);
+            document.getElementById('voiceQ').style.display = 'none';
+            document.getElementById('voiceA').style.display = 'none';
         }
 
         document.getElementById('ttsModel').addEventListener('change', updateVoicePresets);
@@ -851,8 +868,10 @@
             if (textContent) body.text = textContent;
 
             // Advanced
-            const voiceQ = document.getElementById('voiceQ').value.trim();
-            const voiceA = document.getElementById('voiceA').value.trim();
+            const voiceQSel = document.getElementById('voiceQSelect').value;
+            const voiceASel = document.getElementById('voiceASelect').value;
+            const voiceQ = voiceQSel === '__custom__' ? document.getElementById('voiceQ').value.trim() : voiceQSel;
+            const voiceA = voiceASel === '__custom__' ? document.getElementById('voiceA').value.trim() : voiceASel;
             if (voiceQ || voiceA) {
                 body.voices = {};
                 if (voiceQ) body.voices.question = voiceQ;
