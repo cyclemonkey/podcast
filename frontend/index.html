@@ -14,917 +14,752 @@
             min-height: 100vh;
         }
 
-        .container {
-            max-width: 720px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
-        }
+        .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; }
 
-        header {
-            text-align: center;
-            margin-bottom: 2.5rem;
-        }
-
-        header h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #fff;
-            letter-spacing: -0.02em;
-        }
-
-        header p {
-            color: #888;
-            font-size: 0.9rem;
-            margin-top: 0.25rem;
-        }
+        header { text-align: center; margin-bottom: 2.5rem; }
+        header h1 { font-size: 1.75rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+        header p  { color: #888; font-size: 0.9rem; margin-top: 0.25rem; }
 
         /* User bar */
         .user-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 10px;
-            padding: 0.65rem 1.25rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: space-between;
+            background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
+            padding: 0.65rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.85rem;
         }
-
-        .user-bar .user-name {
-            color: #ccc;
-        }
-
-        .user-bar .user-links {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .user-bar a {
-            color: #666;
-            text-decoration: none;
-            font-size: 0.8rem;
-            transition: color 0.15s;
-        }
-
+        .user-bar .user-links { display: flex; gap: 1rem; align-items: center; }
+        .user-bar a { color: #666; text-decoration: none; font-size: 0.8rem; transition: color 0.15s; }
         .user-bar a:hover { color: #aaa; }
-
-        .user-bar .logout-link {
-            color: #555;
-        }
-
-        .user-bar .logout-link:hover { color: #e74c3c; }
+        .user-bar a#userName { color: #ccc; }
+        .logout-link:hover { color: #e74c3c !important; }
 
         /* Card */
         .card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.25rem;
+            background: #1a1a1a; border: 1px solid #2a2a2a;
+            border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem;
         }
-
         .card h2 {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #888;
-            margin-bottom: 1rem;
+            font-size: 0.8rem; text-transform: uppercase;
+            letter-spacing: 0.05em; color: #888; margin-bottom: 1rem;
         }
 
         /* Inputs */
-        label {
-            display: block;
-            font-size: 0.85rem;
-            color: #aaa;
-            margin-bottom: 0.3rem;
-        }
-
+        label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 0.3rem; }
         input, select, textarea {
-            width: 100%;
-            background: #111;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 0.6rem 0.75rem;
-            color: #e0e0e0;
-            font-size: 0.9rem;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.15s;
+            width: 100%; background: #111; border: 1px solid #333; border-radius: 8px;
+            padding: 0.6rem 0.75rem; color: #e0e0e0; font-size: 0.9rem;
+            font-family: inherit; outline: none; transition: border-color 0.15s;
         }
-
-        input:focus, select:focus, textarea:focus {
-            border-color: #555;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
+        input:focus, select:focus, textarea:focus { border-color: #555; }
+        textarea { resize: vertical; min-height: 80px; }
         .field { margin-bottom: 1rem; }
         .field:last-child { margin-bottom: 0; }
 
-        .row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
+        .row   { display: grid; grid-template-columns: 1fr 1fr;     gap: 1rem; }
+        .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
 
-        .row-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 1rem;
-        }
-
-        /* URL list */
-        .url-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .url-entry {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .url-entry input { flex: 1; }
-
-        .btn-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #111;
-            color: #888;
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.15s;
-        }
-
-        .btn-icon:hover {
-            border-color: #555;
-            color: #e0e0e0;
-        }
-
-        .btn-icon.remove:hover {
-            border-color: #c0392b;
-            color: #e74c3c;
-        }
-
-        /* File upload */
-        .drop-zone {
-            border: 2px dashed #333;
-            border-radius: 10px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 0.75rem;
-        }
-
-        .drop-zone:hover, .drop-zone.dragover {
-            border-color: #555;
-            background: #1e1e1e;
-        }
-
-        .drop-zone-text {
-            color: #888;
-            font-size: 0.9rem;
-        }
-
-        .drop-zone-text strong {
-            color: #bbb;
-        }
-
-        .drop-zone-hint {
-            color: #555;
-            font-size: 0.75rem;
-            margin-top: 0.35rem;
-        }
-
-        .file-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            background: #111;
-            border: 1px solid #2a2a2a;
-            border-radius: 8px;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.85rem;
-        }
-
-        .file-item .file-icon {
-            color: #666;
-            font-size: 0.8rem;
-            flex-shrink: 0;
-        }
-
-        .file-item .file-name {
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            color: #ccc;
-        }
-
-        .file-item .file-size {
-            color: #555;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-        }
-
-        .file-item .file-remove {
-            color: #555;
-            cursor: pointer;
-            font-size: 1rem;
-            padding: 0 0.25rem;
-            transition: color 0.15s;
-        }
-
-        .file-item .file-remove:hover { color: #e74c3c; }
-
-        .file-item.uploading { opacity: 0.5; }
-
-        /* Tabs for sources */
+        /* Tabs */
         .source-tabs {
-            display: flex;
-            gap: 0;
-            margin-bottom: 1rem;
+            display: flex; gap: 0; margin-bottom: 1rem;
             border-bottom: 1px solid #2a2a2a;
         }
-
         .source-tab {
-            padding: 0.5rem 1rem;
-            font-size: 0.85rem;
-            color: #666;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.15s;
-            user-select: none;
+            padding: 0.5rem 1rem; font-size: 0.85rem; color: #666;
+            cursor: pointer; border-bottom: 2px solid transparent;
+            transition: all 0.15s; user-select: none;
         }
-
         .source-tab:hover { color: #aaa; }
-
-        .source-tab.active {
-            color: #fff;
-            border-bottom-color: #fff;
-        }
-
+        .source-tab.active { color: #fff; border-bottom-color: #fff; }
         .source-panel { display: none; }
         .source-panel.active { display: block; }
 
+        /* Resource list */
+        .resource-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+
+        .resource-item {
+            display: flex; align-items: center; gap: 0.6rem;
+            background: #111; border: 1px solid #2a2a2a; border-radius: 8px;
+            padding: 0.5rem 0.75rem; font-size: 0.85rem;
+        }
+        .resource-item input[type="checkbox"] {
+            width: 16px; height: 16px; flex-shrink: 0; cursor: pointer;
+            accent-color: #fff; padding: 0; border: none; background: none;
+        }
+        .resource-label {
+            flex: 1; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; color: #ccc;
+        }
+        .resource-meta { color: #555; font-size: 0.75rem; flex-shrink: 0; }
+        .resource-remove {
+            color: #555; cursor: pointer; font-size: 1rem;
+            padding: 0 0.2rem; transition: color 0.15s; flex-shrink: 0;
+        }
+        .resource-remove:hover { color: #e74c3c; }
+        .resource-empty { color: #555; font-size: 0.85rem; padding: 0.25rem 0; }
+
+        /* Add row */
+        .add-row { display: flex; gap: 0.5rem; align-items: flex-start; }
+        .add-row input, .add-row textarea { flex: 1; min-width: 0; }
+        .btn-add {
+            padding: 0.6rem 0.9rem; border: 1px solid #333; border-radius: 8px;
+            background: transparent; color: #aaa; font-size: 0.85rem;
+            cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+        }
+        .btn-add:hover { border-color: #555; color: #e0e0e0; }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed #333; border-radius: 10px; padding: 1.25rem;
+            text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 0.75rem;
+        }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #555; background: #1e1e1e; }
+        .drop-zone-text  { color: #888; font-size: 0.9rem; }
+        .drop-zone-text strong { color: #bbb; }
+        .drop-zone-hint  { color: #555; font-size: 0.75rem; margin-top: 0.35rem; }
+
         /* Toggle */
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-        }
-
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; }
         .toggle-row span { font-size: 0.9rem; }
-
         .toggle {
-            width: 44px;
-            height: 24px;
-            background: #333;
-            border-radius: 12px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.2s;
+            width: 44px; height: 24px; background: #333; border-radius: 12px;
+            position: relative; cursor: pointer; transition: background 0.2s;
         }
-
         .toggle.on { background: #2ecc71; }
-
         .toggle::after {
-            content: '';
-            position: absolute;
-            width: 18px;
-            height: 18px;
-            background: #fff;
-            border-radius: 50%;
-            top: 3px;
-            left: 3px;
-            transition: transform 0.2s;
+            content: ''; position: absolute; width: 18px; height: 18px;
+            background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: transform 0.2s;
         }
-
-        .toggle.on::after {
-            transform: translateX(20px);
-        }
+        .toggle.on::after { transform: translateX(20px); }
 
         /* Collapsible */
         .collapse-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            user-select: none;
+            display: flex; align-items: center; justify-content: space-between;
+            cursor: pointer; user-select: none;
         }
-
-        .collapse-toggle .arrow {
-            color: #666;
-            font-size: 0.75rem;
-            transition: transform 0.2s;
-        }
-
-        .collapse-toggle.open .arrow {
-            transform: rotate(90deg);
-        }
-
-        .collapse-body {
-            display: none;
-            margin-top: 1rem;
-        }
-
+        .collapse-toggle .arrow { color: #666; font-size: 0.75rem; transition: transform 0.2s; }
+        .collapse-toggle.open .arrow { transform: rotate(90deg); }
+        .collapse-body { display: none; margin-top: 1rem; }
         .collapse-body.open { display: block; }
 
         /* Generate button */
         .btn-generate {
-            width: 100%;
-            padding: 0.85rem;
-            border: none;
-            border-radius: 10px;
-            background: #fff;
-            color: #000;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.15s;
+            width: 100%; padding: 0.85rem; border: none; border-radius: 10px;
+            background: #fff; color: #000; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: opacity 0.15s;
         }
-
         .btn-generate:hover { opacity: 0.9; }
+        .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .btn-generate:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
+        /* Podcast list */
+        .podcast-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+        .podcast-item {
+            background: #111; border: 1px solid #2a2a2a; border-radius: 10px;
+            padding: 0.9rem 1rem;
         }
+        .podcast-item.generating { border-color: #333; }
+        .podcast-item.failed     { border-color: #5c2020; }
 
-        /* Progress */
-        .progress {
-            display: none;
-            margin-top: 1.25rem;
+        .podcast-header {
+            display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;
         }
+        .podcast-header:last-child { margin-bottom: 0; }
 
-        .progress.visible { display: block; }
-
-        .progress-bar-track {
-            width: 100%;
-            height: 4px;
-            background: #2a2a2a;
-            border-radius: 2px;
-            overflow: hidden;
+        .podcast-title {
+            flex: 1; font-size: 0.85rem; color: #bbb;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
+        .podcast-date { color: #555; font-size: 0.75rem; flex-shrink: 0; }
 
-        .progress-bar-fill {
-            height: 100%;
-            background: #fff;
-            border-radius: 2px;
-            width: 0%;
-            animation: indeterminate 1.5s ease-in-out infinite;
-        }
+        .podcast-actions { display: flex; gap: 0.5rem; align-items: center; }
 
-        @keyframes indeterminate {
-            0% { width: 0%; margin-left: 0; }
-            50% { width: 60%; margin-left: 20%; }
-            100% { width: 0%; margin-left: 100%; }
-        }
-
-        .progress-text {
-            text-align: center;
-            color: #888;
-            font-size: 0.85rem;
-            margin-top: 0.75rem;
-        }
-
-        /* Audio player */
-        .player {
-            display: none;
-            margin-top: 1.25rem;
-        }
-
-        .player.visible { display: block; }
-
-        .player-card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 1.25rem;
-        }
-
-        .player-card h3 {
-            font-size: 0.9rem;
-            margin-bottom: 0.75rem;
-            color: #fff;
-        }
-
-        .player-card audio {
-            width: 100%;
-            margin-bottom: 0.75rem;
-        }
-
-        .btn-download {
+        .btn-sm {
+            padding: 0.3rem 0.7rem; border: 1px solid #333; border-radius: 6px;
+            background: transparent; color: #888; font-size: 0.78rem;
+            cursor: pointer; transition: all 0.15s; text-decoration: none;
             display: inline-block;
-            padding: 0.5rem 1.25rem;
-            border: 1px solid #333;
-            border-radius: 8px;
-            background: transparent;
-            color: #e0e0e0;
-            font-size: 0.85rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.15s;
         }
+        .btn-sm:hover { border-color: #555; color: #e0e0e0; }
+        .btn-sm.danger:hover { border-color: #c0392b; color: #e74c3c; }
 
-        .btn-download:hover {
-            border-color: #555;
-            background: #222;
+        .podcast-error { color: #f5a5a5; font-size: 0.82rem; }
+
+        /* Spinner */
+        .spinner {
+            width: 16px; height: 16px; border: 2px solid #444;
+            border-top-color: #aaa; border-radius: 50%;
+            animation: spin 0.8s linear infinite; flex-shrink: 0;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        audio { width: 100%; margin-top: 0.5rem; }
 
         /* Error */
         .error-msg {
-            display: none;
-            background: #2d1515;
-            border: 1px solid #5c2020;
-            border-radius: 10px;
-            padding: 1rem 1.25rem;
-            margin-top: 1.25rem;
-            color: #f5a5a5;
-            font-size: 0.9rem;
+            display: none; background: #2d1515; border: 1px solid #5c2020;
+            border-radius: 10px; padding: 1rem 1.25rem; margin-top: 1.25rem;
+            color: #f5a5a5; font-size: 0.9rem;
         }
-
         .error-msg.visible { display: block; }
 
         /* Responsive */
-        @media (max-width: 500px) {
-            .row, .row-3 { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 500px) { .row, .row-3 { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Myers Podcast</h1>
-            <p>Your Personal Generative AI Podcast</p>
-        </header>
+<div class="container">
+    <header>
+        <h1>Myers Podcast</h1>
+        <p>Your Personal Generative AI Podcast</p>
+    </header>
 
-        <!-- User bar -->
-        <div class="user-bar">
-            <a href="/user/profile" class="user-name" id="userName" style="text-decoration:none;color:#ccc">...</a>
-            <div class="user-links">
-                <a href="/logout" class="logout-link" id="logoutLink" style="display:none">Log out</a>
+    <!-- User bar -->
+    <div class="user-bar">
+        <a href="/user/profile" id="userName" style="text-decoration:none;color:#ccc">...</a>
+        <div class="user-links">
+            <a href="/logout" class="logout-link" id="logoutLink" style="display:none">Log out</a>
+        </div>
+    </div>
+
+    <!-- Sources -->
+    <div class="card">
+        <h2>Sources</h2>
+        <div class="source-tabs">
+            <div class="source-tab active"  onclick="switchTab('urls')">URLs</div>
+            <div class="source-tab"         onclick="switchTab('files')">Files</div>
+            <div class="source-tab"         onclick="switchTab('text')">Text</div>
+        </div>
+
+        <!-- URLs -->
+        <div class="source-panel active" id="panel-urls">
+            <div class="resource-list" id="urlList">
+                <div class="resource-empty" id="urlEmpty">No saved URLs. Add one below.</div>
+            </div>
+            <div class="add-row">
+                <input type="url" id="newUrl" placeholder="Paste a URL (webpage, YouTube, PDF...)">
+                <button class="btn-add" onclick="addUrl()">Save</button>
             </div>
         </div>
 
-        <!-- Content Sources -->
-        <div class="card">
-            <h2>Content Sources</h2>
-
-            <div class="source-tabs">
-                <div class="source-tab active" onclick="switchTab('urls')">URLs</div>
-                <div class="source-tab" onclick="switchTab('files')">Files</div>
-                <div class="source-tab" onclick="switchTab('text')">Text</div>
+        <!-- Files -->
+        <div class="source-panel" id="panel-files">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-text"><strong>Drop files here</strong> or click to browse</div>
+                <div class="drop-zone-hint">PDF, TXT, PNG, JPG, WEBP, GIF (max 20 MB each)</div>
+                <input type="file" id="fileInput" multiple accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none">
             </div>
-
-            <!-- URLs panel -->
-            <div class="source-panel active" id="panel-urls">
-                <div class="url-list" id="urlList">
-                    <div class="url-entry">
-                        <input type="url" placeholder="Paste a URL (webpage, YouTube, PDF...)" class="url-input">
-                        <button class="btn-icon remove" onclick="removeUrl(this)" title="Remove">&times;</button>
-                    </div>
-                </div>
-                <button class="btn-icon" onclick="addUrl()" title="Add URL" style="margin-left:auto; display:flex;">+</button>
-            </div>
-
-            <!-- Files panel -->
-            <div class="source-panel" id="panel-files">
-                <div class="drop-zone" id="dropZone">
-                    <div class="drop-zone-text"><strong>Drop files here</strong> or click to browse</div>
-                    <div class="drop-zone-hint">PDF, TXT, PNG, JPG, WEBP, GIF (max 20 MB each)</div>
-                    <input type="file" id="fileInput" multiple accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none">
-                </div>
-                <div class="file-list" id="fileList"></div>
-            </div>
-
-            <!-- Text panel -->
-            <div class="source-panel" id="panel-text">
-                <textarea id="textInput" placeholder="Paste or type text content directly..." style="min-height:120px"></textarea>
+            <div class="resource-list" id="fileList">
+                <div class="resource-empty" id="fileEmpty">No uploaded files.</div>
             </div>
         </div>
 
-        <!-- Options -->
-        <div class="card">
-            <h2>Options</h2>
-            <div class="row-3 field">
-                <div>
-                    <label>TTS Provider</label>
-                    <select id="ttsModel">
-                        <option value="edge">Edge (free)</option>
-                        <option value="openai">OpenAI</option>
-                        <option value="gemini">Gemini</option>
-                        <option value="elevenlabs">ElevenLabs</option>
-                        <option value="geminimulti">Gemini Multi</option>
-                    </select>
-                </div>
-                <div>
-                    <label>LLM Model</label>
-                    <select id="llmModel">
-                        <option value="gemini">Gemini</option>
-                        <option value="openai">OpenAI</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Language</label>
-                    <input type="text" id="language" value="English" placeholder="e.g. Spanish">
-                </div>
+        <!-- Text -->
+        <div class="source-panel" id="panel-text">
+            <div class="resource-list" id="textList">
+                <div class="resource-empty" id="textEmpty">No saved text. Add some below.</div>
             </div>
-
-            <div class="field toggle-row">
-                <span>Long-form podcast</span>
-                <div class="toggle" id="longForm" onclick="this.classList.toggle('on')"></div>
+            <div style="margin-bottom:0.5rem">
+                <textarea id="newText" placeholder="Paste or type text content..." style="min-height:90px"></textarea>
             </div>
-
-            <!-- Advanced -->
-            <div class="collapse-toggle" id="advancedToggle" onclick="toggleAdvanced()">
-                <h2 style="margin-bottom:0">Advanced Settings</h2>
-                <span class="arrow">&#9654;</span>
-            </div>
-            <div class="collapse-body" id="advancedBody">
-                <div class="row field">
-                    <div>
-                        <label>Voice 1 (question)</label>
-                        <select id="voiceQSelect" onchange="onVoiceChange('Q')"></select>
-                        <input type="text" id="voiceQ" placeholder="Enter voice name" style="display:none;margin-top:0.5rem">
-                    </div>
-                    <div>
-                        <label>Voice 2 (answer)</label>
-                        <select id="voiceASelect" onchange="onVoiceChange('A')"></select>
-                        <input type="text" id="voiceA" placeholder="Enter voice name" style="display:none;margin-top:0.5rem">
-                    </div>
-                </div>
-                <div class="row field">
-                    <div>
-                        <label>Creativity (0-1)</label>
-                        <input type="number" id="creativity" min="0" max="1" step="0.1" placeholder="1">
-                    </div>
-                    <div>
-                        <label>Podcast Name</label>
-                        <input type="text" id="podcastName" placeholder="Myers Podcast">
-                    </div>
-                </div>
-                <div class="field">
-                    <label>Custom Instructions</label>
-                    <textarea id="instructions" placeholder="Extra instructions for the AI conversation..."></textarea>
-                </div>
-            </div>
-        </div>
-
-        <!-- Generate -->
-        <button class="btn-generate" id="btnGenerate" onclick="generate()">Generate Podcast</button>
-
-        <!-- Progress -->
-        <div class="progress" id="progress">
-            <div class="progress-bar-track"><div class="progress-bar-fill"></div></div>
-            <div class="progress-text" id="progressText">Generating podcast... this may take a few minutes</div>
-        </div>
-
-        <!-- Error -->
-        <div class="error-msg" id="errorMsg"></div>
-
-        <!-- Player -->
-        <div class="player" id="player">
-            <div class="player-card">
-                <h3>Your Podcast</h3>
-                <audio controls id="audioEl"></audio>
-                <br>
-                <a class="btn-download" id="downloadLink" download="podcast.mp3">Download MP3</a>
+            <div class="add-row">
+                <input type="text" id="newTextLabel" placeholder="Label (optional)">
+                <button class="btn-add" onclick="addText()">Save</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // --- Uploaded files state ---
-        let uploadedFiles = []; // [{id, name, size}]
+    <!-- Options -->
+    <div class="card">
+        <h2>Options</h2>
+        <div class="row-3 field">
+            <div>
+                <label>TTS Provider</label>
+                <select id="ttsModel">
+                    <option value="edge">Edge (free)</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="elevenlabs">ElevenLabs</option>
+                    <option value="geminimulti">Gemini Multi</option>
+                </select>
+            </div>
+            <div>
+                <label>LLM Model</label>
+                <select id="llmModel">
+                    <option value="gemini">Gemini</option>
+                    <option value="openai">OpenAI</option>
+                </select>
+            </div>
+            <div>
+                <label>Language</label>
+                <input type="text" id="language" value="English" placeholder="e.g. Spanish">
+            </div>
+        </div>
 
-        // --- Tabs ---
-        function switchTab(tab) {
-            document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.source-panel').forEach(p => p.classList.remove('active'));
-            document.querySelector(`.source-tab[onclick="switchTab('${tab}')"]`).classList.add('active');
-            document.getElementById('panel-' + tab).classList.add('active');
-        }
+        <div class="field toggle-row">
+            <span>Long-form podcast</span>
+            <div class="toggle" id="longForm" onclick="this.classList.toggle('on')"></div>
+        </div>
 
-        // --- URLs ---
-        function addUrl() {
-            const list = document.getElementById('urlList');
-            const entry = document.createElement('div');
-            entry.className = 'url-entry';
-            entry.innerHTML = `
-                <input type="url" placeholder="Paste a URL (webpage, YouTube, PDF...)" class="url-input">
-                <button class="btn-icon remove" onclick="removeUrl(this)" title="Remove">&times;</button>
-            `;
-            list.appendChild(entry);
-            entry.querySelector('input').focus();
-        }
+        <!-- Advanced -->
+        <div class="collapse-toggle" id="advancedToggle" onclick="toggleAdvanced()">
+            <h2 style="margin-bottom:0">Advanced Settings</h2>
+            <span class="arrow">&#9654;</span>
+        </div>
+        <div class="collapse-body" id="advancedBody">
+            <div class="row field">
+                <div>
+                    <label>Voice 1 (question)</label>
+                    <select id="voiceQSelect" onchange="onVoiceChange('Q')"></select>
+                    <input type="text" id="voiceQ" placeholder="Enter voice name" style="display:none;margin-top:0.5rem">
+                </div>
+                <div>
+                    <label>Voice 2 (answer)</label>
+                    <select id="voiceASelect" onchange="onVoiceChange('A')"></select>
+                    <input type="text" id="voiceA" placeholder="Enter voice name" style="display:none;margin-top:0.5rem">
+                </div>
+            </div>
+            <div class="row field">
+                <div>
+                    <label>Creativity (0-1)</label>
+                    <input type="number" id="creativity" min="0" max="1" step="0.1" placeholder="0.7">
+                </div>
+                <div>
+                    <label>Podcast Name</label>
+                    <input type="text" id="podcastName" placeholder="Myers Podcast">
+                </div>
+            </div>
+            <div class="field">
+                <label>Custom Instructions</label>
+                <textarea id="instructions" placeholder="Extra instructions for the AI conversation..."></textarea>
+            </div>
+        </div>
+    </div>
 
-        function removeUrl(btn) {
-            const list = document.getElementById('urlList');
-            if (list.children.length > 1) {
-                btn.parentElement.remove();
-            }
-        }
+    <!-- Generate -->
+    <button class="btn-generate" id="btnGenerate" onclick="generate()">Generate Podcast</button>
 
-        // --- Load existing user files on startup ---
-        async function loadUserFiles() {
-            try {
-                const resp = await fetch('/files');
-                if (!resp.ok) return;
-                const data = await resp.json();
-                for (const f of data.files) {
-                    uploadedFiles.push(f);
-                    addFileItem(f.name, f.size, f.id, false);
-                }
-            } catch (e) {
-                // silently ignore
-            }
-        }
+    <div class="error-msg" id="errorMsg"></div>
 
-        // --- File upload ---
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
+    <!-- My Podcasts -->
+    <div class="card" style="margin-top:1.25rem">
+        <h2>My Podcasts</h2>
+        <div class="podcast-list" id="podcastList">
+            <div class="resource-empty" id="podcastEmpty">No podcasts yet.</div>
+        </div>
+    </div>
+</div>
 
-        dropZone.addEventListener('click', () => fileInput.click());
+<script>
+// ── Voice presets ─────────────────────────────────────────────────────────────
+const VOICE_PRESETS = {
+    edge:       { q: ['en-GB-SoniaNeural','en-GB-LibbyNeural','en-GB-MaisieNeural','en-US-JennyNeural','en-US-AriaNeural','en-US-MichelleNeural','en-AU-NatashaNeural'], a: ['en-GB-RyanNeural','en-GB-ThomasNeural','en-US-EricNeural','en-US-GuyNeural','en-US-DavisNeural','en-AU-WilliamNeural'] },
+    openai:     { q: ['alloy','echo','fable','nova','shimmer','onyx'], a: ['alloy','echo','fable','nova','shimmer','onyx'] },
+    gemini:     { q: ['en-US-Journey-D','en-US-Journey-F','en-US-Journey-O','en-GB-Journey-D','en-GB-Journey-F'], a: ['en-US-Journey-D','en-US-Journey-F','en-US-Journey-O','en-GB-Journey-D','en-GB-Journey-F'] },
+    geminimulti:{ q: ['A','B','C','D','E','F','R','S'], a: ['A','B','C','D','E','F','R','S'] },
+    elevenlabs: {
+        q: ['Chris','Alice','Aria','Bill','Brian','Callum','Charlotte','Domi','Dorothy','Emily','Elli','Ethan','Fin','Freya','George','Gigi','Giovanni','Glinda','Grace','Harry','James','Jeremy','Jessie','Jessica','Joseph','Josh','Liam','Lilly','Matilda','Michael','Mimi','Nicole','Patrick','Paul','Rachel','Ryan','Sam','Sarah','Serena','Thomas','Will'],
+        a: ['Chris','Alice','Aria','Bill','Brian','Callum','Charlotte','Domi','Dorothy','Emily','Elli','Ethan','Fin','Freya','George','Gigi','Giovanni','Glinda','Grace','Harry','James','Jeremy','Jessie','Jessica','Joseph','Josh','Liam','Lilly','Matilda','Michael','Mimi','Nicole','Patrick','Paul','Rachel','Ryan','Sam','Sarah','Serena','Thomas','Will'],
+    },
+};
 
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
+function buildVoiceSelect(id, voices) {
+    const sel  = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Default —</option>'
+        + voices.map(v => `<option value="${v}">${v}</option>`).join('')
+        + '<option value="__custom__">Custom (type below)...</option>';
+    if (prev && voices.includes(prev)) sel.value = prev;
+}
+
+function onVoiceChange(w) {
+    const sel = document.getElementById('voice' + w + 'Select');
+    const inp = document.getElementById('voice' + w);
+    inp.style.display = sel.value === '__custom__' ? '' : 'none';
+    if (sel.value !== '__custom__') inp.value = '';
+}
+
+function updateVoicePresets() {
+    const model   = document.getElementById('ttsModel').value;
+    const presets = VOICE_PRESETS[model] || { q: [], a: [] };
+    buildVoiceSelect('voiceQSelect', presets.q);
+    buildVoiceSelect('voiceASelect', presets.a);
+    document.getElementById('voiceQ').style.display = 'none';
+    document.getElementById('voiceA').style.display = 'none';
+}
+document.getElementById('ttsModel').addEventListener('change', updateVoicePresets);
+updateVoicePresets();
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+    document.querySelectorAll('.source-tab').forEach(t  => t.classList.remove('active'));
+    document.querySelectorAll('.source-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.source-tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+}
+
+// ── URLs ──────────────────────────────────────────────────────────────────────
+let savedUrls = [];
+
+function renderUrls() {
+    const list  = document.getElementById('urlList');
+    const empty = document.getElementById('urlEmpty');
+    list.querySelectorAll('.resource-item').forEach(el => el.remove());
+    empty.style.display = savedUrls.length ? 'none' : '';
+    savedUrls.forEach(u => list.insertBefore(makeUrlItem(u), empty));
+}
+
+function makeUrlItem(u) {
+    const el = document.createElement('div');
+    el.className = 'resource-item';
+    el.dataset.id = u.id;
+    el.innerHTML = `
+        <input type="checkbox" class="resource-check" checked>
+        <span class="resource-label" title="${escHtml(u.url)}">${escHtml(u.label || u.url)}</span>
+        <span class="resource-remove" onclick="deleteUrl('${u.id}')">&times;</span>
+    `;
+    return el;
+}
+
+async function addUrl() {
+    const input = document.getElementById('newUrl');
+    const url   = input.value.trim();
+    if (!url) return;
+    try {
+        const resp = await fetch('/resources/url', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
         });
+        if (!resp.ok) throw new Error(await resp.text());
+        const entry = await resp.json();
+        savedUrls.push(entry);
+        renderUrls();
+        input.value = '';
+    } catch (e) { showError('Failed to save URL: ' + e.message); }
+}
 
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
+async function deleteUrl(id) {
+    await fetch('/resources/url/' + id, { method: 'DELETE' });
+    savedUrls = savedUrls.filter(u => u.id !== id);
+    renderUrls();
+}
+
+document.getElementById('newUrl').addEventListener('keydown', e => { if (e.key === 'Enter') addUrl(); });
+
+// ── Files ─────────────────────────────────────────────────────────────────────
+let savedFiles = [];
+
+function renderFiles() {
+    const list  = document.getElementById('fileList');
+    const empty = document.getElementById('fileEmpty');
+    list.querySelectorAll('.resource-item').forEach(el => el.remove());
+    empty.style.display = savedFiles.length ? 'none' : '';
+    savedFiles.forEach(f => list.insertBefore(makeFileItem(f), empty));
+}
+
+function makeFileItem(f) {
+    const el  = document.createElement('div');
+    el.className = 'resource-item';
+    el.dataset.id = f.id;
+    const sz  = f.size < 1048576 ? (f.size / 1024).toFixed(1) + ' KB' : (f.size / 1048576).toFixed(1) + ' MB';
+    const ext = f.name.split('.').pop().toUpperCase();
+    el.innerHTML = `
+        <input type="checkbox" class="resource-check" checked>
+        <span class="resource-label" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
+        <span class="resource-meta">${ext} · ${sz}</span>
+        <span class="resource-remove" onclick="deleteFile('${f.id}')">&times;</span>
+    `;
+    return el;
+}
+
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
+
+async function handleFiles(fileList) {
+    if (!fileList.length) return;
+    const fd = new FormData();
+    for (const f of fileList) fd.append('files', f);
+    try {
+        const resp = await fetch('/upload', { method: 'POST', body: fd });
+        if (!resp.ok) { const e = await resp.json().catch(() => ({ detail: resp.statusText })); throw new Error(e.detail); }
+        const data = await resp.json();
+        savedFiles.push(...data.files);
+        renderFiles();
+    } catch (e) { showError(e.message); }
+}
+
+async function deleteFile(id) {
+    await fetch('/files/' + id, { method: 'DELETE' });
+    savedFiles = savedFiles.filter(f => f.id !== id);
+    renderFiles();
+}
+
+// ── Text snippets ─────────────────────────────────────────────────────────────
+let savedTexts = [];
+
+function renderTexts() {
+    const list  = document.getElementById('textList');
+    const empty = document.getElementById('textEmpty');
+    list.querySelectorAll('.resource-item').forEach(el => el.remove());
+    empty.style.display = savedTexts.length ? 'none' : '';
+    savedTexts.forEach(t => list.insertBefore(makeTextItem(t), empty));
+}
+
+function makeTextItem(t) {
+    const el      = document.createElement('div');
+    el.className  = 'resource-item';
+    el.dataset.id = t.id;
+    const preview = t.label || (t.content.slice(0, 60) + (t.content.length > 60 ? '…' : ''));
+    el.innerHTML  = `
+        <input type="checkbox" class="resource-check" checked>
+        <span class="resource-label" title="${escHtml(t.content)}">${escHtml(preview)}</span>
+        <span class="resource-remove" onclick="deleteText('${t.id}')">&times;</span>
+    `;
+    return el;
+}
+
+async function addText() {
+    const content = document.getElementById('newText').value.trim();
+    const label   = document.getElementById('newTextLabel').value.trim();
+    if (!content) return;
+    try {
+        const resp = await fetch('/resources/text', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content, label }),
         });
+        if (!resp.ok) throw new Error(await resp.text());
+        const entry = await resp.json();
+        savedTexts.push(entry);
+        renderTexts();
+        document.getElementById('newText').value      = '';
+        document.getElementById('newTextLabel').value = '';
+    } catch (e) { showError('Failed to save text: ' + e.message); }
+}
 
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
+async function deleteText(id) {
+    await fetch('/resources/text/' + id, { method: 'DELETE' });
+    savedTexts = savedTexts.filter(t => t.id !== id);
+    renderTexts();
+}
+
+// ── Advanced ──────────────────────────────────────────────────────────────────
+function toggleAdvanced() {
+    document.getElementById('advancedToggle').classList.toggle('open');
+    document.getElementById('advancedBody').classList.toggle('open');
+}
+
+// ── Podcasts ──────────────────────────────────────────────────────────────────
+let pollingTimers = {};
+
+function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function renderJobs(jobs) {
+    const list  = document.getElementById('podcastList');
+    const empty = document.getElementById('podcastEmpty');
+    list.querySelectorAll('.podcast-item').forEach(el => el.remove());
+    empty.style.display = jobs.length ? 'none' : '';
+    jobs.forEach(job => list.insertBefore(makePodcastItem(job), empty));
+}
+
+function makePodcastItem(job) {
+    const el      = document.createElement('div');
+    el.className  = 'podcast-item ' + job.status;
+    el.dataset.jobId = job.id;
+
+    if (job.status === 'generating') {
+        el.innerHTML = `
+            <div class="podcast-header">
+                <div class="spinner"></div>
+                <span class="podcast-title">Generating…</span>
+                <span class="podcast-date">${formatDate(job.created_at)}</span>
+            </div>
+        `;
+        if (!pollingTimers[job.id]) {
+            pollingTimers[job.id] = setInterval(() => pollJob(job.id), 3000);
+        }
+    } else if (job.status === 'done') {
+        const audioUrl = `/audio/${job.id}`;
+        el.innerHTML = `
+            <div class="podcast-header">
+                <span class="podcast-title" title="${escHtml(job.title)}">${escHtml(job.title)}</span>
+                <span class="podcast-date">${formatDate(job.completed_at || job.created_at)}</span>
+                <div class="podcast-actions">
+                    <a class="btn-sm" href="${audioUrl}" download="${job.id}.mp3">Download</a>
+                    <button class="btn-sm danger" onclick="deleteJob('${job.id}')">Delete</button>
+                </div>
+            </div>
+            <audio controls src="${audioUrl}" preload="metadata"></audio>
+        `;
+    } else {
+        el.innerHTML = `
+            <div class="podcast-header">
+                <span class="podcast-title">${escHtml(job.title || 'Failed')}</span>
+                <span class="podcast-date">${formatDate(job.created_at)}</span>
+                <div class="podcast-actions">
+                    <button class="btn-sm danger" onclick="deleteJob('${job.id}')">Delete</button>
+                </div>
+            </div>
+            <div class="podcast-error">Failed: ${escHtml(job.error || 'Unknown error')}</div>
+        `;
+    }
+    return el;
+}
+
+async function pollJob(jobId) {
+    try {
+        const resp = await fetch('/jobs/' + jobId);
+        if (!resp.ok) return;
+        const job = await resp.json();
+        if (job.status !== 'generating') {
+            clearInterval(pollingTimers[jobId]);
+            delete pollingTimers[jobId];
+            // Replace the item
+            const existing = document.querySelector(`[data-job-id="${jobId}"]`);
+            if (existing) existing.replaceWith(makePodcastItem(job));
+            document.getElementById('podcastEmpty').style.display = 'none';
+            document.getElementById('btnGenerate').disabled = false;
+        }
+    } catch (e) { /* ignore */ }
+}
+
+async function deleteJob(jobId) {
+    clearInterval(pollingTimers[jobId]);
+    delete pollingTimers[jobId];
+    await fetch('/jobs/' + jobId, { method: 'DELETE' });
+    const el = document.querySelector(`[data-job-id="${jobId}"]`);
+    if (el) el.remove();
+    if (!document.querySelectorAll('.podcast-item').length) {
+        document.getElementById('podcastEmpty').style.display = '';
+    }
+}
+
+// ── Generate ──────────────────────────────────────────────────────────────────
+async function generate() {
+    const checkedUrls  = [...document.querySelectorAll('#urlList  .resource-item')]
+        .filter(el => el.querySelector('input[type=checkbox]')?.checked)
+        .map(el => savedUrls.find(u => u.id === el.dataset.id)?.url).filter(Boolean);
+
+    const checkedFiles = [...document.querySelectorAll('#fileList .resource-item')]
+        .filter(el => el.querySelector('input[type=checkbox]')?.checked)
+        .map(el => el.dataset.id).filter(Boolean);
+
+    const checkedTexts = [...document.querySelectorAll('#textList .resource-item')]
+        .filter(el => el.querySelector('input[type=checkbox]')?.checked)
+        .map(el => savedTexts.find(t => t.id === el.dataset.id)?.content).filter(Boolean);
+
+    if (!checkedUrls.length && !checkedFiles.length && !checkedTexts.length) {
+        showError('Select at least one source (URL, file, or text) to generate from.');
+        return;
+    }
+
+    const voiceQSel = document.getElementById('voiceQSelect').value;
+    const voiceASel = document.getElementById('voiceASelect').value;
+    const voiceQ = voiceQSel === '__custom__' ? document.getElementById('voiceQ').value.trim() : voiceQSel;
+    const voiceA = voiceASel === '__custom__' ? document.getElementById('voiceA').value.trim() : voiceASel;
+
+    const body = {
+        urls:            checkedUrls,
+        file_ids:        checkedFiles,
+        text:            checkedTexts.join('\n\n---\n\n'),
+        tts_model:       document.getElementById('ttsModel').value,
+        llm_model:       document.getElementById('llmModel').value,
+        output_language: document.getElementById('language').value || 'English',
+        is_long_form:    document.getElementById('longForm').classList.contains('on'),
+    };
+
+    if (voiceQ || voiceA) {
+        body.voices = {};
+        if (voiceQ) body.voices.question = voiceQ;
+        if (voiceA) body.voices.answer   = voiceA;
+    }
+
+    const creativity = document.getElementById('creativity').value;
+    if (creativity) body.creativity = parseFloat(creativity);
+
+    const name = document.getElementById('podcastName').value.trim();
+    if (name) body.name = name;
+
+    const instructions = document.getElementById('instructions').value.trim();
+    if (instructions) body.user_instructions = instructions;
+
+    hideError();
+    document.getElementById('btnGenerate').disabled = true;
+
+    try {
+        const resp = await fetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
         });
-
-        fileInput.addEventListener('change', () => {
-            handleFiles(fileInput.files);
-            fileInput.value = '';
-        });
-
-        async function handleFiles(fileList) {
-            if (!fileList.length) return;
-
-            const formData = new FormData();
-            for (const f of fileList) {
-                formData.append('files', f);
-            }
-
-            // Show uploading state
-            const tempItems = [];
-            for (const f of fileList) {
-                const el = addFileItem(f.name, f.size, null, true);
-                tempItems.push(el);
-            }
-
-            try {
-                const resp = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!resp.ok) {
-                    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-                    throw new Error(err.detail || 'Upload failed');
-                }
-
-                const data = await resp.json();
-
-                // Remove temp items, add real ones
-                tempItems.forEach(el => el.remove());
-                for (const f of data.files) {
-                    uploadedFiles.push(f);
-                    addFileItem(f.name, f.size, f.id, false);
-                }
-            } catch (e) {
-                tempItems.forEach(el => el.remove());
-                showError(e.message);
-            }
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+            throw new Error(err.detail || 'Generation failed');
         }
+        const { job_id } = await resp.json();
 
-        function addFileItem(name, size, id, uploading) {
-            const list = document.getElementById('fileList');
-            const el = document.createElement('div');
-            el.className = 'file-item' + (uploading ? ' uploading' : '');
-            if (id) el.dataset.fileId = id;
+        // Add generating item to top of list
+        const list  = document.getElementById('podcastList');
+        const empty = document.getElementById('podcastEmpty');
+        const item  = makePodcastItem({ id: job_id, status: 'generating', created_at: new Date().toISOString() });
+        list.insertBefore(item, list.firstChild);
+        empty.style.display = 'none';
 
-            const ext = name.split('.').pop().toLowerCase();
-            const icons = { pdf: 'PDF', txt: 'TXT', png: 'IMG', jpg: 'IMG', jpeg: 'IMG', webp: 'IMG', gif: 'IMG' };
-            const icon = icons[ext] || 'FILE';
+        // Button stays disabled while generating; pollJob re-enables it on completion
 
-            const sizeStr = size < 1024 ? size + ' B'
-                : size < 1048576 ? (size / 1024).toFixed(1) + ' KB'
-                : (size / 1048576).toFixed(1) + ' MB';
+    } catch (e) {
+        showError(e.message);
+        document.getElementById('btnGenerate').disabled = false;
+    }
+}
 
-            el.innerHTML = `
-                <span class="file-icon">${icon}</span>
-                <span class="file-name">${escapeHtml(name)}</span>
-                <span class="file-size">${sizeStr}</span>
-                ${uploading ? '<span class="file-size">uploading...</span>' : `<span class="file-remove" onclick="removeFile(this, '${id}')">&times;</span>`}
-            `;
-            list.appendChild(el);
-            return el;
-        }
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+}
 
-        async function removeFile(btn, fileId) {
-            try {
-                await fetch('/files/' + fileId, { method: 'DELETE' });
-            } catch (e) {
-                // ignore delete errors
-            }
-            uploadedFiles = uploadedFiles.filter(f => f.id !== fileId);
-            btn.closest('.file-item').remove();
-        }
+function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('visible');
+}
 
-        function escapeHtml(str) {
-            const d = document.createElement('div');
-            d.textContent = str;
-            return d.innerHTML;
-        }
+function hideError() {
+    document.getElementById('errorMsg').classList.remove('visible');
+}
 
-        // --- Voice presets per TTS model ---
-        const VOICE_PRESETS = {
-            edge: {
-                q: ['en-GB-SoniaNeural','en-GB-LibbyNeural','en-GB-MaisieNeural','en-US-JennyNeural','en-US-AriaNeural','en-US-MichelleNeural','en-AU-NatashaNeural'],
-                a: ['en-GB-RyanNeural','en-GB-ThomasNeural','en-US-EricNeural','en-US-GuyNeural','en-US-DavisNeural','en-AU-WilliamNeural'],
-            },
-            openai: {
-                q: ['alloy','echo','fable','nova','shimmer','onyx'],
-                a: ['alloy','echo','fable','nova','shimmer','onyx'],
-            },
-            gemini: {
-                q: ['en-US-Journey-D','en-US-Journey-F','en-US-Journey-O','en-GB-Journey-D','en-GB-Journey-F'],
-                a: ['en-US-Journey-D','en-US-Journey-F','en-US-Journey-O','en-GB-Journey-D','en-GB-Journey-F'],
-            },
-            geminimulti: {
-                q: ['A','B','C','D','E','F','R','S'],
-                a: ['A','B','C','D','E','F','R','S'],
-            },
-            elevenlabs: {
-                q: ['Chris','Alice','Aria','Bill','Brian','Callum','Charlotte','Domi','Dorothy','Emily','Elli','Ethan','Fin','Freya','George','Gigi','Giovanni','Glinda','Grace','Harry','James','Jeremy','Jessie','Jessica','Joseph','Josh','Liam','Lilly','Matilda','Michael','Mimi','Nicole','Patrick','Paul','Rachel','Ryan','Sam','Sarah','Serena','Thomas','Will'],
-                a: ['Chris','Alice','Aria','Bill','Brian','Callum','Charlotte','Domi','Dorothy','Emily','Elli','Ethan','Fin','Freya','George','Gigi','Giovanni','Glinda','Grace','Harry','James','Jeremy','Jessie','Jessica','Joseph','Josh','Liam','Lilly','Matilda','Michael','Mimi','Nicole','Patrick','Paul','Rachel','Ryan','Sam','Sarah','Serena','Thomas','Will'],
-            },
-        };
+// ── Init ──────────────────────────────────────────────────────────────────────
+fetch('/me').then(r => r.json()).then(u => {
+    document.getElementById('userName').textContent = u.name || u.username || 'Profile';
+    document.getElementById('logoutLink').style.display = '';
+}).catch(() => {
+    document.getElementById('userName').textContent = 'Profile';
+});
 
-        function buildVoiceSelect(selectEl, voices) {
-            const prev = selectEl.value;
-            selectEl.innerHTML = '<option value="">— Default —</option>'
-                + voices.map(v => `<option value="${v}">${v}</option>`).join('')
-                + '<option value="__custom__">Custom (type below)...</option>';
-            if (prev && voices.includes(prev)) selectEl.value = prev;
-        }
+async function init() {
+    const [resResp, filesResp, jobsResp] = await Promise.all([
+        fetch('/resources').then(r => r.json()).catch(() => ({ urls: [], texts: [] })),
+        fetch('/files').then(r => r.json()).catch(() => ({ files: [] })),
+        fetch('/jobs').then(r => r.json()).catch(() => ({ jobs: [] })),
+    ]);
+    savedUrls  = resResp.urls  || [];
+    savedTexts = resResp.texts || [];
+    savedFiles = filesResp.files || [];
+    renderUrls();
+    renderFiles();
+    renderTexts();
+    renderJobs(jobsResp.jobs || []);
+}
 
-        function onVoiceChange(which) {
-            const sel = document.getElementById('voiceSelect' .replace('Select', which === 'Q' ? 'QSelect' : 'ASelect'));
-            const inp = document.getElementById('voice' + which);
-            // resolve correct select id
-            const selectEl = document.getElementById('voice' + which + 'Select');
-            inp.style.display = selectEl.value === '__custom__' ? '' : 'none';
-            if (selectEl.value !== '__custom__') inp.value = '';
-        }
-
-        function updateVoicePresets() {
-            const model = document.getElementById('ttsModel').value;
-            const presets = VOICE_PRESETS[model] || { q: [], a: [] };
-            buildVoiceSelect(document.getElementById('voiceQSelect'), presets.q);
-            buildVoiceSelect(document.getElementById('voiceASelect'), presets.a);
-            document.getElementById('voiceQ').style.display = 'none';
-            document.getElementById('voiceA').style.display = 'none';
-        }
-
-        document.getElementById('ttsModel').addEventListener('change', updateVoicePresets);
-        updateVoicePresets();
-
-        // --- Advanced ---
-        function toggleAdvanced() {
-            document.getElementById('advancedToggle').classList.toggle('open');
-            document.getElementById('advancedBody').classList.toggle('open');
-        }
-
-        function show(id) { document.getElementById(id).classList.add('visible'); }
-        function hide(id) { document.getElementById(id).classList.remove('visible'); }
-
-        // --- Load user info and existing files on startup ---
-        fetch('/me').then(r => r.json()).then(u => {
-            const display = u.name || u.username || 'Unknown user';
-            document.getElementById('userName').textContent = display;
-            document.getElementById('logoutLink').style.display = '';
-        }).catch(() => {
-            document.getElementById('userName').textContent = 'Unknown user';
-        });
-
-        loadUserFiles();
-
-        // --- Generate ---
-        async function generate() {
-            const urls = Array.from(document.querySelectorAll('.url-input'))
-                .map(i => i.value.trim())
-                .filter(u => u.length > 0);
-
-            const fileIds = uploadedFiles.map(f => f.id);
-            const textContent = document.getElementById('textInput').value.trim();
-
-            if (urls.length === 0 && fileIds.length === 0 && !textContent) {
-                showError('Please add at least one URL, upload a file, or enter text.');
-                return;
-            }
-
-            const body = {
-                urls: urls,
-                file_ids: fileIds,
-                tts_model: document.getElementById('ttsModel').value,
-                llm_model: document.getElementById('llmModel').value,
-                output_language: document.getElementById('language').value || 'English',
-                is_long_form: document.getElementById('longForm').classList.contains('on'),
-            };
-
-            if (textContent) body.text = textContent;
-
-            // Advanced
-            const voiceQSel = document.getElementById('voiceQSelect').value;
-            const voiceASel = document.getElementById('voiceASelect').value;
-            const voiceQ = voiceQSel === '__custom__' ? document.getElementById('voiceQ').value.trim() : voiceQSel;
-            const voiceA = voiceASel === '__custom__' ? document.getElementById('voiceA').value.trim() : voiceASel;
-            if (voiceQ || voiceA) {
-                body.voices = {};
-                if (voiceQ) body.voices.question = voiceQ;
-                if (voiceA) body.voices.answer = voiceA;
-            }
-
-            const creativity = document.getElementById('creativity').value;
-            if (creativity) body.creativity = parseFloat(creativity);
-
-            const name = document.getElementById('podcastName').value.trim();
-            if (name) body.name = name;
-
-            const instructions = document.getElementById('instructions').value.trim();
-            if (instructions) body.user_instructions = instructions;
-
-            // UI state
-            hide('errorMsg');
-            hide('player');
-            show('progress');
-            document.getElementById('btnGenerate').disabled = true;
-            document.getElementById('progressText').textContent = 'Generating podcast... this may take a few minutes';
-
-            try {
-                const resp = await fetch('/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                });
-
-                if (!resp.ok) {
-                    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-                    throw new Error(err.detail || 'Generation failed');
-                }
-
-                const data = await resp.json();
-                const audioUrl = data.audioUrl;
-
-                document.getElementById('audioEl').src = audioUrl;
-                document.getElementById('downloadLink').href = audioUrl;
-                show('player');
-            } catch (e) {
-                showError(e.message);
-            } finally {
-                hide('progress');
-                document.getElementById('btnGenerate').disabled = false;
-            }
-        }
-
-        function showError(msg) {
-            const el = document.getElementById('errorMsg');
-            el.textContent = msg;
-            show('errorMsg');
-        }
-    </script>
+init();
+</script>
 </body>
 </html>
