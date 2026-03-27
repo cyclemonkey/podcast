@@ -5,7 +5,6 @@ This module provides REST endpoints for podcast generation and audio serving,
 with configuration management and temporary file handling.
 """
 
-import secrets
 import logging
 import uuid
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File
@@ -25,18 +24,6 @@ logger = logging.getLogger(__name__)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
-
-# APP_USERS format: "alice:secret1,bob:secret2"
-def _parse_users(raw: str) -> Dict[str, str]:
-    users = {}
-    for entry in raw.split(","):
-        entry = entry.strip()
-        if ":" in entry:
-            username, password = entry.split(":", 1)
-            users[username.strip()] = password.strip()
-    return users
-
-APP_USERS: Dict[str, str] = _parse_users(os.getenv("APP_USERS", ""))
 
 LLM_MODEL_MAP = {
     "google": "gemini-2.5-flash",
@@ -71,32 +58,6 @@ def merge_configs(base_config: Dict[Any, Any], user_config: Dict[Any, Any]) -> D
     return merged
 
 
-def _check_password(data: dict, x_app_password: str = "") -> str:
-    """
-    Validate user credentials against APP_USERS and return the authenticated username.
-    Accepts credentials from the JSON body (user + password fields) or the
-    X-App-Password header (format: "username:password").
-    Returns the username so it can be logged.
-    If APP_USERS is not configured, open access is allowed (local dev).
-    """
-    if not APP_USERS:
-        return "anonymous"
-
-    # Extract from body first, then fall back to header
-    username = data.get("user", "")
-    password = data.get("password", "")
-    if not username and x_app_password and ":" in x_app_password:
-        username, password = x_app_password.split(":", 1)
-
-    if not username or not password:
-        raise HTTPException(status_code=401, detail="Authentication required: provide 'user' and 'password'")
-
-    expected = APP_USERS.get(username)
-    if expected is None or not secrets.compare_digest(password, expected):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    return username
-
 
 def _resolve_llm(alias: str) -> tuple:
     """Map a user-friendly model alias to (model_name, api_key_label)."""
@@ -126,26 +87,18 @@ def root():
         return HTMLResponse(index.read_text())
     return {"service": "Myers Podcast", "status": "running", "docs": "/docs"}
 
-@app.post("/auth")
-def check_auth(data: dict):
-    """Validate credentials without generating anything. Returns auth_required flag."""
-    if not APP_USERS:
-        return {"authenticated": True, "auth_required": False, "user": "anonymous"}
-    username = data.get("user", "")
-    password = data.get("password", "")
-    if not username or not password:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    expected = APP_USERS.get(username)
-    if expected is None or not secrets.compare_digest(password, expected):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"authenticated": True, "auth_required": True, "user": username}
-
-
-@app.get("/auth/status")
-def auth_status():
-    """Check whether authentication is required (no credentials needed)."""
-    return {"auth_required": bool(APP_USERS)}
-
+@app.get("/me")
+def me(
+    x_authentik_username: str = Header(default="", alias="X-authentik-username"),
+    x_authentik_email: str = Header(default="", alias="X-authentik-email"),
+    x_authentik_name: str = Header(default="", alias="X-authentik-name"),
+):
+    """Return the authenticated user's info from Authentik headers."""
+    return {
+        "username": x_authentik_username,
+        "email": x_authentik_email,
+        "name": x_authentik_name,
+    }
 
 
 @app.post("/upload")
@@ -196,12 +149,10 @@ def delete_uploaded_file(file_id: str):
 @app.post("/generate")
 def generate_podcast_endpoint(
     data: dict,
-    x_app_password: str = Header(default="", alias="X-App-Password"),
+    x_authentik_username: str = Header(default="anonymous", alias="X-authentik-username"),
 ):
     try:
-        # --- Authentication ---
-        username = _check_password(data, x_app_password)
-        logger.info("Request from user: %s", username)
+        logger.info("Request from user: %s", x_authentik_username)
 
         # --- Load base configuration ---
         base_config = load_base_config()
@@ -214,6 +165,17 @@ def generate_podcast_endpoint(
 
         # --- LLM model resolution ---
         llm_model_name, api_key_label = _resolve_llm(data.get('llm_model'))
+
+        # --- User-provided API keys (override server defaults if supplied) ---
+        user_gemini_key = data.get('user_gemini_api_key', '').strip()
+        user_openai_key = data.get('user_openai_api_key', '').strip()
+        user_elevenlabs_key = data.get('user_elevenlabs_api_key', '').strip()
+        if user_gemini_key:
+            os.environ['GEMINI_API_KEY'] = user_gemini_key
+        if user_openai_key:
+            os.environ['OPENAI_API_KEY'] = user_openai_key
+        if user_elevenlabs_key:
+            os.environ['ELEVENLABS_API_KEY'] = user_elevenlabs_key
 
         # --- Build conversation config ---
         user_config = {

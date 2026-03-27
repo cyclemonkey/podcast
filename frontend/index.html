@@ -38,32 +38,31 @@
             margin-top: 0.25rem;
         }
 
-        /* Auth banner */
-        .auth-bar {
-            display: none;
+        /* User bar */
+        .user-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             background: #1a1a1a;
             border: 1px solid #2a2a2a;
             border-radius: 10px;
-            padding: 1rem 1.25rem;
+            padding: 0.65rem 1.25rem;
             margin-bottom: 1.5rem;
+            font-size: 0.85rem;
         }
 
-        .auth-bar.visible { display: block; }
+        .user-bar .user-name {
+            color: #ccc;
+        }
 
-        .auth-bar h3 {
+        .user-bar a {
+            color: #666;
+            text-decoration: none;
             font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #888;
-            margin-bottom: 0.75rem;
+            transition: color 0.15s;
         }
 
-        .auth-row {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .auth-row input { flex: 1; }
+        .user-bar a:hover { color: #aaa; }
 
         /* Card */
         .card {
@@ -460,7 +459,6 @@
         /* Responsive */
         @media (max-width: 500px) {
             .row, .row-3 { grid-template-columns: 1fr; }
-            .auth-row { flex-direction: column; }
         }
     </style>
 </head>
@@ -471,13 +469,10 @@
             <p>Your Personal Generative AI Podcast</p>
         </header>
 
-        <!-- Auth -->
-        <div class="auth-bar" id="authBar">
-            <h3>Login</h3>
-            <div class="auth-row">
-                <input type="text" id="authUser" placeholder="Username">
-                <input type="password" id="authPass" placeholder="Password">
-            </div>
+        <!-- User bar -->
+        <div class="user-bar">
+            <span class="user-name" id="userName">...</span>
+            <a href="/if/user/" target="_blank">Manage account</a>
         </div>
 
         <!-- Content Sources -->
@@ -578,6 +573,29 @@
                 <div class="field">
                     <label>Custom Instructions</label>
                     <textarea id="instructions" placeholder="Extra instructions for the AI conversation..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Keys -->
+        <div class="card">
+            <div class="collapse-toggle" id="apiKeysToggle" onclick="toggleApiKeys()">
+                <h2 style="margin-bottom:0">My API Keys</h2>
+                <span class="arrow">&#9654;</span>
+            </div>
+            <div class="collapse-body" id="apiKeysBody">
+                <p style="font-size:0.8rem;color:#555;margin-bottom:1rem">Leave blank to use the server's default keys.</p>
+                <div class="field">
+                    <label>Gemini API Key</label>
+                    <input type="password" id="keyGemini" placeholder="AIza...">
+                </div>
+                <div class="field">
+                    <label>OpenAI API Key</label>
+                    <input type="password" id="keyOpenAI" placeholder="sk-...">
+                </div>
+                <div class="field">
+                    <label>ElevenLabs API Key</label>
+                    <input type="password" id="keyElevenLabs" placeholder="...">
                 </div>
             </div>
         </div>
@@ -749,11 +767,45 @@
             document.getElementById('advancedBody').classList.toggle('open');
         }
 
+        // --- API Keys ---
+        function toggleApiKeys() {
+            document.getElementById('apiKeysToggle').classList.toggle('open');
+            document.getElementById('apiKeysBody').classList.toggle('open');
+        }
+
+        const API_KEY_IDS = ['keyGemini', 'keyOpenAI', 'keyElevenLabs'];
+
+        function saveApiKeys() {
+            API_KEY_IDS.forEach(id => {
+                const val = document.getElementById(id).value;
+                if (val) localStorage.setItem(id, val);
+                else localStorage.removeItem(id);
+            });
+        }
+
+        function loadApiKeys() {
+            API_KEY_IDS.forEach(id => {
+                const val = localStorage.getItem(id);
+                if (val) document.getElementById(id).value = val;
+            });
+        }
+
+        API_KEY_IDS.forEach(id => {
+            document.getElementById(id).addEventListener('input', saveApiKeys);
+        });
+
+        loadApiKeys();
+
         function show(id) { document.getElementById(id).classList.add('visible'); }
         function hide(id) { document.getElementById(id).classList.remove('visible'); }
 
-        // Show auth bar by default
-        document.getElementById('authBar').classList.add('visible');
+        // --- Load user info ---
+        fetch('/me').then(r => r.json()).then(u => {
+            const display = u.name || u.username || 'Unknown user';
+            document.getElementById('userName').textContent = display;
+        }).catch(() => {
+            document.getElementById('userName').textContent = 'Unknown user';
+        });
 
         // --- Generate ---
         async function generate() {
@@ -780,13 +832,13 @@
 
             if (textContent) body.text = textContent;
 
-            // Auth
-            const user = document.getElementById('authUser').value.trim();
-            const pass = document.getElementById('authPass').value.trim();
-            if (user && pass) {
-                body.user = user;
-                body.password = pass;
-            }
+            // User API keys
+            const keyGemini = document.getElementById('keyGemini').value.trim();
+            const keyOpenAI = document.getElementById('keyOpenAI').value.trim();
+            const keyElevenLabs = document.getElementById('keyElevenLabs').value.trim();
+            if (keyGemini) body.user_gemini_api_key = keyGemini;
+            if (keyOpenAI) body.user_openai_api_key = keyOpenAI;
+            if (keyElevenLabs) body.user_elevenlabs_api_key = keyElevenLabs;
 
             // Advanced
             const voiceQ = document.getElementById('voiceQ').value.trim();

@@ -13,8 +13,6 @@ services:
         sync: false
       - key: ELEVENLABS_API_KEY
         sync: false
-      - key: APP_USERS
-        sync: false
       - key: PYTHON_VERSION
         value: "3.12.0"
       - key: PYTHONUNBUFFERED
