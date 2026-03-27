@@ -25,7 +25,6 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"
       - "traefik.http.services.podcastfy.loadbalancer.server.port=8000"
-      - "traefik.http.routers.podcastfy.middlewares=authentik-auth@file"
     networks:
       - default
       - coolify
