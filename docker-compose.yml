@@ -9,11 +9,12 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - AUTHENTIK_URL=${AUTHENTIK_URL}
     expose:
       - "8000"
     volumes:
       - audio_data:/app/podcastfy/api/temp_audio
-      - upload_data:/app/podcastfy/api/uploads
+      - user_data:/app/podcastfy/api/user_data
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
@@ -35,4 +36,4 @@ networks:
 
 volumes:
   audio_data:
-  upload_data:
+  user_data:
