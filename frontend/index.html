@@ -76,39 +76,6 @@
 
         .user-bar .logout-link:hover { color: #e74c3c; }
 
-        /* API key status */
-        .key-row {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .key-row input { flex: 1; }
-
-        .key-status {
-            font-size: 0.75rem;
-            color: #2ecc71;
-            white-space: nowrap;
-            flex-shrink: 0;
-            min-width: 50px;
-        }
-
-        .key-status.unset { color: #555; }
-
-        .btn-save-keys {
-            margin-top: 0.75rem;
-            padding: 0.45rem 1rem;
-            border: 1px solid #333;
-            border-radius: 8px;
-            background: transparent;
-            color: #aaa;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-
-        .btn-save-keys:hover { border-color: #555; color: #e0e0e0; }
-
         /* Card */
         .card {
             background: #1a1a1a;
@@ -516,10 +483,9 @@
 
         <!-- User bar -->
         <div class="user-bar">
-            <span class="user-name" id="userName">...</span>
+            <a href="/user/profile" class="user-name" id="userName" style="text-decoration:none;color:#ccc">...</a>
             <div class="user-links">
-                <a href="#" id="manageLink" target="_blank" style="display:none">Manage account</a>
-                <a href="#" id="logoutLink" class="logout-link" style="display:none">Log out</a>
+                <a href="/logout" class="logout-link" id="logoutLink" style="display:none">Log out</a>
             </div>
         </div>
 
@@ -622,39 +588,6 @@
                     <label>Custom Instructions</label>
                     <textarea id="instructions" placeholder="Extra instructions for the AI conversation..."></textarea>
                 </div>
-            </div>
-        </div>
-
-        <!-- API Keys -->
-        <div class="card">
-            <div class="collapse-toggle" id="apiKeysToggle" onclick="toggleApiKeys()">
-                <h2 style="margin-bottom:0">My API Keys</h2>
-                <span class="arrow">&#9654;</span>
-            </div>
-            <div class="collapse-body" id="apiKeysBody">
-                <p style="font-size:0.8rem;color:#555;margin-bottom:1rem">Saved to your profile. Leave blank to use the server's default keys.</p>
-                <div class="field">
-                    <label>Gemini API Key</label>
-                    <div class="key-row">
-                        <input type="password" id="keyGemini" placeholder="AIza...">
-                        <span class="key-status unset" id="statusGemini">Not set</span>
-                    </div>
-                </div>
-                <div class="field">
-                    <label>OpenAI API Key</label>
-                    <div class="key-row">
-                        <input type="password" id="keyOpenAI" placeholder="sk-...">
-                        <span class="key-status unset" id="statusOpenAI">Not set</span>
-                    </div>
-                </div>
-                <div class="field">
-                    <label>ElevenLabs API Key</label>
-                    <div class="key-row">
-                        <input type="password" id="keyElevenLabs" placeholder="...">
-                        <span class="key-status unset" id="statusElevenLabs">Not set</span>
-                    </div>
-                </div>
-                <button class="btn-save-keys" onclick="saveApiKeys()">Save keys</button>
             </div>
         </div>
 
@@ -840,80 +773,18 @@
             document.getElementById('advancedBody').classList.toggle('open');
         }
 
-        // --- API Keys (server-side profile) ---
-        function toggleApiKeys() {
-            document.getElementById('apiKeysToggle').classList.toggle('open');
-            document.getElementById('apiKeysBody').classList.toggle('open');
-        }
-
-        function _setKeyStatus(statusId, isSet) {
-            const el = document.getElementById(statusId);
-            if (isSet) {
-                el.textContent = 'Saved';
-                el.classList.remove('unset');
-            } else {
-                el.textContent = 'Not set';
-                el.classList.add('unset');
-            }
-        }
-
-        async function loadApiKeys() {
-            try {
-                const resp = await fetch('/profile');
-                if (!resp.ok) return;
-                const p = await resp.json();
-                _setKeyStatus('statusGemini', p.gemini_key_set);
-                _setKeyStatus('statusOpenAI', p.openai_key_set);
-                _setKeyStatus('statusElevenLabs', p.elevenlabs_key_set);
-            } catch (e) {
-                // silently ignore
-            }
-        }
-
-        async function saveApiKeys() {
-            const payload = {
-                gemini_key: document.getElementById('keyGemini').value.trim(),
-                openai_key: document.getElementById('keyOpenAI').value.trim(),
-                elevenlabs_key: document.getElementById('keyElevenLabs').value.trim(),
-            };
-            try {
-                await fetch('/profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-                // Clear the input fields and refresh status
-                document.getElementById('keyGemini').value = '';
-                document.getElementById('keyOpenAI').value = '';
-                document.getElementById('keyElevenLabs').value = '';
-                await loadApiKeys();
-            } catch (e) {
-                showError('Failed to save API keys: ' + e.message);
-            }
-        }
-
         function show(id) { document.getElementById(id).classList.add('visible'); }
         function hide(id) { document.getElementById(id).classList.remove('visible'); }
 
-        // --- Load user info, API keys, and existing files on startup ---
+        // --- Load user info and existing files on startup ---
         fetch('/me').then(r => r.json()).then(u => {
             const display = u.name || u.username || 'Unknown user';
-            document.getElementById('userName').textContent = display || 'Unknown user';
-            if (u.manage_url) {
-                const link = document.getElementById('manageLink');
-                link.href = u.manage_url;
-                link.style.display = '';
-            }
-            if (u.logout_url) {
-                const link = document.getElementById('logoutLink');
-                link.href = u.logout_url;
-                link.style.display = '';
-            }
+            document.getElementById('userName').textContent = display;
+            document.getElementById('logoutLink').style.display = '';
         }).catch(() => {
             document.getElementById('userName').textContent = 'Unknown user';
         });
 
-        loadApiKeys();
         loadUserFiles();
 
         // --- Generate ---

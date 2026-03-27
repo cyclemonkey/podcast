@@ -17,4 +17,14 @@ services:
         value: "3.12.0"
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: AUTHENTIK_CLIENT_ID
+        sync: false
+      - key: AUTHENTIK_CLIENT_SECRET
+        sync: false
+      - key: AUTHENTIK_SLUG
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
     healthCheckPath: /health

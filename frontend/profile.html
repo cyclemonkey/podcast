@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile – Myers Podcast</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .back-link {
+            color: #666;
+            text-decoration: none;
+            font-size: 1.1rem;
+            line-height: 1;
+            transition: color 0.15s;
+            flex-shrink: 0;
+        }
+
+        .back-link:hover { color: #ccc; }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.02em;
+        }
+
+        /* Card */
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card h2 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        /* User info */
+        .user-info-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .info-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: baseline;
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            color: #555;
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            color: #ccc;
+        }
+
+        /* Inputs */
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 0.3rem;
+        }
+
+        input {
+            width: 100%;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        input:focus { border-color: #555; }
+
+        .field { margin-bottom: 1rem; }
+        .field:last-child { margin-bottom: 0; }
+
+        /* Key row */
+        .key-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .key-row input { flex: 1; }
+
+        .key-status {
+            font-size: 0.75rem;
+            color: #2ecc71;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 50px;
+        }
+
+        .key-status.unset { color: #555; }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid #333;
+            background: transparent;
+            color: #aaa;
+        }
+
+        .btn:hover { border-color: #555; color: #e0e0e0; }
+
+        .btn-primary {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover { opacity: 0.88; color: #000; }
+
+        .btn-danger {
+            color: #e74c3c;
+            border-color: #5c2020;
+        }
+
+        .btn-danger:hover { border-color: #c0392b; background: #2d1515; }
+
+        .btn-row {
+            margin-top: 0.75rem;
+        }
+
+        /* File upload / list */
+        .drop-zone {
+            border: 2px dashed #333;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #555;
+            background: #1e1e1e;
+        }
+
+        .drop-zone-text {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .drop-zone-text strong { color: #bbb; }
+
+        .drop-zone-hint {
+            color: #555;
+            font-size: 0.75rem;
+            margin-top: 0.35rem;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .file-icon {
+            color: #666;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #ccc;
+        }
+
+        .file-size {
+            color: #555;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .file-remove {
+            color: #555;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 0.25rem;
+            transition: color 0.15s;
+            flex-shrink: 0;
+        }
+
+        .file-remove:hover { color: #e74c3c; }
+
+        .file-item.uploading { opacity: 0.5; }
+
+        .files-empty {
+            color: #555;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 0.5rem 0;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 0.65rem 1rem;
+            font-size: 0.85rem;
+            color: #ccc;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.error {
+            background: #2d1515;
+            border-color: #5c2020;
+            color: #f5a5a5;
+        }
+
+        /* Logout section */
+        .logout-section {
+            text-align: center;
+            padding: 1rem 0 0.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .info-label { width: 64px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="back-link" title="Back">&#8592;</a>
+            <h1>My Profile</h1>
+        </header>
+
+        <!-- User info -->
+        <div class="card">
+            <h2>Account</h2>
+            <div class="user-info-grid">
+                <div class="info-row">
+                    <span class="info-label">Name</span>
+                    <span class="info-value" id="infoName">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Username</span>
+                    <span class="info-value" id="infoUsername">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email</span>
+                    <span class="info-value" id="infoEmail">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Keys -->
+        <div class="card">
+            <h2>API Keys</h2>
+            <p style="font-size:0.8rem;color:#555;margin-bottom:1rem">Saved to your profile. Leave blank to use the server's default keys.</p>
+            <div class="field">
+                <label>Gemini API Key</label>
+                <div class="key-row">
+                    <input type="password" id="keyGemini" placeholder="AIza...">
+                    <span class="key-status unset" id="statusGemini">Not set</span>
+                </div>
+            </div>
+            <div class="field">
+                <label>OpenAI API Key</label>
+                <div class="key-row">
+                    <input type="password" id="keyOpenAI" placeholder="sk-...">
+                    <span class="key-status unset" id="statusOpenAI">Not set</span>
+                </div>
+            </div>
+            <div class="field">
+                <label>ElevenLabs API Key</label>
+                <div class="key-row">
+                    <input type="password" id="keyElevenLabs" placeholder="...">
+                    <span class="key-status unset" id="statusElevenLabs">Not set</span>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="saveApiKeys()">Save keys</button>
+            </div>
+        </div>
+
+        <!-- My Files -->
+        <div class="card">
+            <h2>My Files</h2>
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-text"><strong>Drop files here</strong> or click to browse</div>
+                <div class="drop-zone-hint">PDF, TXT, PNG, JPG, WEBP, GIF (max 20 MB each)</div>
+                <input type="file" id="fileInput" multiple accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none">
+            </div>
+            <div class="file-list" id="fileList">
+                <div class="files-empty" id="filesEmpty">No files uploaded yet.</div>
+            </div>
+        </div>
+
+        <!-- Logout -->
+        <div class="logout-section">
+            <a href="/logout" class="btn btn-danger">Log out</a>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // --- Toast ---
+        let toastTimer;
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.toggle('error', isError);
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+        }
+
+        // --- Load user info ---
+        fetch('/me').then(r => r.json()).then(u => {
+            document.getElementById('infoName').textContent     = u.name     || '—';
+            document.getElementById('infoUsername').textContent = u.username || '—';
+            document.getElementById('infoEmail').textContent    = u.email    || '—';
+        }).catch(() => {});
+
+        // --- API Keys ---
+        function _setKeyStatus(statusId, isSet) {
+            const el = document.getElementById(statusId);
+            if (isSet) {
+                el.textContent = 'Saved';
+                el.classList.remove('unset');
+            } else {
+                el.textContent = 'Not set';
+                el.classList.add('unset');
+            }
+        }
+
+        async function loadApiKeys() {
+            try {
+                const resp = await fetch('/profile');
+                if (!resp.ok) return;
+                const p = await resp.json();
+                _setKeyStatus('statusGemini',    p.gemini_key_set);
+                _setKeyStatus('statusOpenAI',    p.openai_key_set);
+                _setKeyStatus('statusElevenLabs', p.elevenlabs_key_set);
+            } catch (e) {}
+        }
+
+        async function saveApiKeys() {
+            const payload = {
+                gemini_key:     document.getElementById('keyGemini').value.trim(),
+                openai_key:     document.getElementById('keyOpenAI').value.trim(),
+                elevenlabs_key: document.getElementById('keyElevenLabs').value.trim(),
+            };
+            try {
+                const resp = await fetch('/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                if (!resp.ok) throw new Error('Save failed');
+                document.getElementById('keyGemini').value    = '';
+                document.getElementById('keyOpenAI').value    = '';
+                document.getElementById('keyElevenLabs').value = '';
+                await loadApiKeys();
+                showToast('API keys saved.');
+            } catch (e) {
+                showToast('Failed to save API keys.', true);
+            }
+        }
+
+        // --- Files ---
+        async function loadFiles() {
+            try {
+                const resp = await fetch('/files');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const empty = document.getElementById('filesEmpty');
+                if (data.files.length) {
+                    empty.style.display = 'none';
+                    for (const f of data.files) addFileItem(f.name, f.size, f.id, false);
+                }
+            } catch (e) {}
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        function formatSize(size) {
+            return size < 1024 ? size + ' B'
+                : size < 1048576 ? (size / 1024).toFixed(1) + ' KB'
+                : (size / 1048576).toFixed(1) + ' MB';
+        }
+
+        function addFileItem(name, size, id, uploading) {
+            const list = document.getElementById('fileList');
+            const empty = document.getElementById('filesEmpty');
+            empty.style.display = 'none';
+
+            const el = document.createElement('div');
+            el.className = 'file-item' + (uploading ? ' uploading' : '');
+            if (id) el.dataset.fileId = id;
+
+            const ext = name.split('.').pop().toLowerCase();
+            const icons = { pdf: 'PDF', txt: 'TXT', png: 'IMG', jpg: 'IMG', jpeg: 'IMG', webp: 'IMG', gif: 'IMG' };
+            const icon = icons[ext] || 'FILE';
+
+            el.innerHTML = `
+                <span class="file-icon">${icon}</span>
+                <span class="file-name">${escapeHtml(name)}</span>
+                <span class="file-size">${formatSize(size)}</span>
+                ${uploading
+                    ? '<span class="file-size">uploading...</span>'
+                    : `<span class="file-remove" onclick="removeFile(this,'${id}')" title="Delete">&times;</span>`
+                }
+            `;
+            list.appendChild(el);
+            return el;
+        }
+
+        async function removeFile(btn, fileId) {
+            try {
+                await fetch('/files/' + fileId, { method: 'DELETE' });
+                btn.closest('.file-item').remove();
+                const list = document.getElementById('fileList');
+                const realItems = list.querySelectorAll('.file-item');
+                if (!realItems.length) {
+                    document.getElementById('filesEmpty').style.display = '';
+                }
+                showToast('File deleted.');
+            } catch (e) {
+                showToast('Failed to delete file.', true);
+            }
+        }
+
+        // Drop zone
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
+
+        async function handleFiles(fileList) {
+            if (!fileList.length) return;
+            const formData = new FormData();
+            for (const f of fileList) formData.append('files', f);
+
+            const tempItems = [];
+            for (const f of fileList) tempItems.push(addFileItem(f.name, f.size, null, true));
+
+            try {
+                const resp = await fetch('/upload', { method: 'POST', body: formData });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+                    throw new Error(err.detail || 'Upload failed');
+                }
+                const data = await resp.json();
+                tempItems.forEach(el => el.remove());
+                for (const f of data.files) addFileItem(f.name, f.size, f.id, false);
+                showToast(`${data.files.length} file(s) uploaded.`);
+            } catch (e) {
+                tempItems.forEach(el => el.remove());
+                const list = document.getElementById('fileList');
+                if (!list.querySelectorAll('.file-item').length) {
+                    document.getElementById('filesEmpty').style.display = '';
+                }
+                showToast(e.message, true);
+            }
+        }
+
+        // --- Init ---
+        loadApiKeys();
+        loadFiles();
+    </script>
+</body>
+</html>
