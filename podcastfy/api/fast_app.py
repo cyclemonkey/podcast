@@ -207,6 +207,17 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
         gemini_key     = (gen_data.get("user_gemini_api_key")     or profile.get("gemini_key")     or GEMINI_API_KEY).strip()
         openai_key     = (gen_data.get("user_openai_api_key")     or profile.get("openai_key")     or OPENAI_API_KEY).strip()
         elevenlabs_key = (gen_data.get("user_elevenlabs_api_key") or profile.get("elevenlabs_key") or ELEVENLABS_API_KEY).strip()
+
+        # Pre-flight: verify the required LLM key is present
+        if api_key_label == "GEMINI_API_KEY" and not gemini_key:
+            raise ValueError("Gemini LLM selected but no Gemini API key is set. Add your key in Profile or switch LLM to OpenAI.")
+        if api_key_label == "OPENAI_API_KEY" and not openai_key:
+            raise ValueError("OpenAI LLM selected but no OpenAI API key is set. Add your key in Profile.")
+        if tts_model in ("openai",) and not openai_key:
+            raise ValueError("OpenAI TTS selected but no OpenAI API key is set. Add your key in Profile.")
+        if tts_model in ("elevenlabs",) and not elevenlabs_key:
+            raise ValueError("ElevenLabs TTS selected but no ElevenLabs API key is set. Add your key in Profile.")
+
         if gemini_key:     os.environ["GEMINI_API_KEY"]     = gemini_key
         if openai_key:     os.environ["OPENAI_API_KEY"]     = openai_key
         if elevenlabs_key: os.environ["ELEVENLABS_API_KEY"] = elevenlabs_key
