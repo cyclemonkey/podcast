@@ -277,8 +277,11 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
         shutil.copy2(src_path, dest_path)
 
         file_size = os.path.getsize(dest_path)
-        if file_size == 0:
-            raise RuntimeError("Generated audio file is empty (0 bytes)")
+        if file_size < 5000:
+            raise RuntimeError(
+                f"Generated audio appears empty or corrupt ({file_size} bytes). "
+                "Check that your API key is valid and the selected content is not empty."
+            )
 
         _update_job(username, job_id, {
             "status":       "done",
