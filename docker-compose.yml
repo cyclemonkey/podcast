@@ -9,7 +9,6 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
-      - APP_USERS=${APP_USERS}
     expose:
       - "8000"
     volumes:
