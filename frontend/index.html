@@ -55,6 +55,12 @@
             color: #ccc;
         }
 
+        .user-bar .user-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
         .user-bar a {
             color: #666;
             text-decoration: none;
@@ -63,6 +69,45 @@
         }
 
         .user-bar a:hover { color: #aaa; }
+
+        .user-bar .logout-link {
+            color: #555;
+        }
+
+        .user-bar .logout-link:hover { color: #e74c3c; }
+
+        /* API key status */
+        .key-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .key-row input { flex: 1; }
+
+        .key-status {
+            font-size: 0.75rem;
+            color: #2ecc71;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 50px;
+        }
+
+        .key-status.unset { color: #555; }
+
+        .btn-save-keys {
+            margin-top: 0.75rem;
+            padding: 0.45rem 1rem;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: transparent;
+            color: #aaa;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-save-keys:hover { border-color: #555; color: #e0e0e0; }
 
         /* Card */
         .card {
@@ -472,7 +517,10 @@
         <!-- User bar -->
         <div class="user-bar">
             <span class="user-name" id="userName">...</span>
-            <a href="/if/user/" target="_blank">Manage account</a>
+            <div class="user-links">
+                <a href="#" id="manageLink" target="_blank" style="display:none">Manage account</a>
+                <a href="#" id="logoutLink" class="logout-link" style="display:none">Log out</a>
+            </div>
         </div>
 
         <!-- Content Sources -->
@@ -584,19 +632,29 @@
                 <span class="arrow">&#9654;</span>
             </div>
             <div class="collapse-body" id="apiKeysBody">
-                <p style="font-size:0.8rem;color:#555;margin-bottom:1rem">Leave blank to use the server's default keys.</p>
+                <p style="font-size:0.8rem;color:#555;margin-bottom:1rem">Saved to your profile. Leave blank to use the server's default keys.</p>
                 <div class="field">
                     <label>Gemini API Key</label>
-                    <input type="password" id="keyGemini" placeholder="AIza...">
+                    <div class="key-row">
+                        <input type="password" id="keyGemini" placeholder="AIza...">
+                        <span class="key-status unset" id="statusGemini">Not set</span>
+                    </div>
                 </div>
                 <div class="field">
                     <label>OpenAI API Key</label>
-                    <input type="password" id="keyOpenAI" placeholder="sk-...">
+                    <div class="key-row">
+                        <input type="password" id="keyOpenAI" placeholder="sk-...">
+                        <span class="key-status unset" id="statusOpenAI">Not set</span>
+                    </div>
                 </div>
                 <div class="field">
                     <label>ElevenLabs API Key</label>
-                    <input type="password" id="keyElevenLabs" placeholder="...">
+                    <div class="key-row">
+                        <input type="password" id="keyElevenLabs" placeholder="...">
+                        <span class="key-status unset" id="statusElevenLabs">Not set</span>
+                    </div>
                 </div>
+                <button class="btn-save-keys" onclick="saveApiKeys()">Save keys</button>
             </div>
         </div>
 
@@ -652,6 +710,21 @@
             const list = document.getElementById('urlList');
             if (list.children.length > 1) {
                 btn.parentElement.remove();
+            }
+        }
+
+        // --- Load existing user files on startup ---
+        async function loadUserFiles() {
+            try {
+                const resp = await fetch('/files');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                for (const f of data.files) {
+                    uploadedFiles.push(f);
+                    addFileItem(f.name, f.size, f.id, false);
+                }
+            } catch (e) {
+                // silently ignore
             }
         }
 
@@ -767,45 +840,81 @@
             document.getElementById('advancedBody').classList.toggle('open');
         }
 
-        // --- API Keys ---
+        // --- API Keys (server-side profile) ---
         function toggleApiKeys() {
             document.getElementById('apiKeysToggle').classList.toggle('open');
             document.getElementById('apiKeysBody').classList.toggle('open');
         }
 
-        const API_KEY_IDS = ['keyGemini', 'keyOpenAI', 'keyElevenLabs'];
-
-        function saveApiKeys() {
-            API_KEY_IDS.forEach(id => {
-                const val = document.getElementById(id).value;
-                if (val) localStorage.setItem(id, val);
-                else localStorage.removeItem(id);
-            });
+        function _setKeyStatus(statusId, isSet) {
+            const el = document.getElementById(statusId);
+            if (isSet) {
+                el.textContent = 'Saved';
+                el.classList.remove('unset');
+            } else {
+                el.textContent = 'Not set';
+                el.classList.add('unset');
+            }
         }
 
-        function loadApiKeys() {
-            API_KEY_IDS.forEach(id => {
-                const val = localStorage.getItem(id);
-                if (val) document.getElementById(id).value = val;
-            });
+        async function loadApiKeys() {
+            try {
+                const resp = await fetch('/profile');
+                if (!resp.ok) return;
+                const p = await resp.json();
+                _setKeyStatus('statusGemini', p.gemini_key_set);
+                _setKeyStatus('statusOpenAI', p.openai_key_set);
+                _setKeyStatus('statusElevenLabs', p.elevenlabs_key_set);
+            } catch (e) {
+                // silently ignore
+            }
         }
 
-        API_KEY_IDS.forEach(id => {
-            document.getElementById(id).addEventListener('input', saveApiKeys);
-        });
-
-        loadApiKeys();
+        async function saveApiKeys() {
+            const payload = {
+                gemini_key: document.getElementById('keyGemini').value.trim(),
+                openai_key: document.getElementById('keyOpenAI').value.trim(),
+                elevenlabs_key: document.getElementById('keyElevenLabs').value.trim(),
+            };
+            try {
+                await fetch('/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                // Clear the input fields and refresh status
+                document.getElementById('keyGemini').value = '';
+                document.getElementById('keyOpenAI').value = '';
+                document.getElementById('keyElevenLabs').value = '';
+                await loadApiKeys();
+            } catch (e) {
+                showError('Failed to save API keys: ' + e.message);
+            }
+        }
 
         function show(id) { document.getElementById(id).classList.add('visible'); }
         function hide(id) { document.getElementById(id).classList.remove('visible'); }
 
-        // --- Load user info ---
+        // --- Load user info, API keys, and existing files on startup ---
         fetch('/me').then(r => r.json()).then(u => {
             const display = u.name || u.username || 'Unknown user';
-            document.getElementById('userName').textContent = display;
+            document.getElementById('userName').textContent = display || 'Unknown user';
+            if (u.manage_url) {
+                const link = document.getElementById('manageLink');
+                link.href = u.manage_url;
+                link.style.display = '';
+            }
+            if (u.logout_url) {
+                const link = document.getElementById('logoutLink');
+                link.href = u.logout_url;
+                link.style.display = '';
+            }
         }).catch(() => {
             document.getElementById('userName').textContent = 'Unknown user';
         });
+
+        loadApiKeys();
+        loadUserFiles();
 
         // --- Generate ---
         async function generate() {
@@ -831,14 +940,6 @@
             };
 
             if (textContent) body.text = textContent;
-
-            // User API keys
-            const keyGemini = document.getElementById('keyGemini').value.trim();
-            const keyOpenAI = document.getElementById('keyOpenAI').value.trim();
-            const keyElevenLabs = document.getElementById('keyElevenLabs').value.trim();
-            if (keyGemini) body.user_gemini_api_key = keyGemini;
-            if (keyOpenAI) body.user_openai_api_key = keyOpenAI;
-            if (keyElevenLabs) body.user_elevenlabs_api_key = keyElevenLabs;
 
             // Advanced
             const voiceQ = document.getElementById('voiceQ').value.trim();

@@ -5,6 +5,7 @@ This module provides REST endpoints for podcast generation and audio serving,
 with configuration management and temporary file handling.
 """
 
+import json
 import logging
 import uuid
 from fastapi import FastAPI, HTTPException, Header, UploadFile, File
@@ -20,10 +21,14 @@ import uvicorn
 
 logger = logging.getLogger(__name__)
 
-# Read API keys once at startup from environment (set via Render env vars)
+# Server-level API keys (fallback when user has not set their own)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+
+# Authentik base URL for account management and logout links
+# e.g. https://auth.yourdomain.com  (no trailing slash)
+AUTHENTIK_URL = os.getenv("AUTHENTIK_URL", "").rstrip("/")
 
 LLM_MODEL_MAP = {
     "google": "gemini-2.5-flash",
@@ -45,18 +50,15 @@ def merge_configs(base_config: Dict[Any, Any], user_config: Dict[Any, Any]) -> D
     """Merge user configuration with base configuration, preferring user values."""
     merged = base_config.copy()
 
-    # Handle special cases for nested dictionaries
     if 'text_to_speech' in merged and 'text_to_speech' in user_config:
         merged['text_to_speech'].update(user_config.get('text_to_speech', {}))
 
-    # Update top-level keys
     for key, value in user_config.items():
-        if key != 'text_to_speech':  # Skip text_to_speech as it's handled above
-            if value is not None:  # Only update if value is not None
+        if key != 'text_to_speech':
+            if value is not None:
                 merged[key] = value
 
     return merged
-
 
 
 def _resolve_llm(alias: str) -> tuple:
@@ -67,13 +69,45 @@ def _resolve_llm(alias: str) -> tuple:
     return model_name, api_key_label
 
 
+# ── Per-user storage ──────────────────────────────────────────────────────────
+
+USER_DATA_DIR = os.getenv(
+    "USER_DATA_DIR",
+    os.path.join(os.path.dirname(__file__), "user_data"),
+)
+
+def _user_dir(username: str) -> str:
+    """Return (and create) the per-user data directory."""
+    safe = "".join(c for c in username if c.isalnum() or c in "-_.")
+    safe = safe or "anonymous"
+    path = os.path.join(USER_DATA_DIR, safe)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+def _user_upload_dir(username: str) -> str:
+    path = os.path.join(_user_dir(username), "files")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+def _load_profile(username: str) -> dict:
+    settings_path = os.path.join(_user_dir(username), "settings.json")
+    try:
+        with open(settings_path) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def _save_profile(username: str, data: dict) -> None:
+    settings_path = os.path.join(_user_dir(username), "settings.json")
+    with open(settings_path, "w") as f:
+        json.dump(data, f)
+
+# ─────────────────────────────────────────────────────────────────────────────
+
 app = FastAPI(title="Myers Podcast")
 
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp_audio")
 os.makedirs(TEMP_DIR, exist_ok=True)
-
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".gif"}
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
@@ -87,6 +121,7 @@ def root():
         return HTMLResponse(index.read_text())
     return {"service": "Myers Podcast", "status": "running", "docs": "/docs"}
 
+
 @app.get("/me")
 def me(
     x_authentik_username: str = Header(default="", alias="X-authentik-username"),
@@ -94,16 +129,56 @@ def me(
     x_authentik_name: str = Header(default="", alias="X-authentik-name"),
 ):
     """Return the authenticated user's info from Authentik headers."""
+    manage_url = f"{AUTHENTIK_URL}/if/user/" if AUTHENTIK_URL else ""
+    logout_url = f"{AUTHENTIK_URL}/if/session-end/" if AUTHENTIK_URL else ""
     return {
         "username": x_authentik_username,
         "email": x_authentik_email,
         "name": x_authentik_name,
+        "manage_url": manage_url,
+        "logout_url": logout_url,
     }
 
 
+@app.get("/profile")
+def get_profile(
+    x_authentik_username: str = Header(default="anonymous", alias="X-authentik-username"),
+):
+    """Return the current user's stored API keys (values masked)."""
+    profile = _load_profile(x_authentik_username)
+    # Return masked versions so the UI can show whether a key is set
+    return {
+        "gemini_key_set": bool(profile.get("gemini_key")),
+        "openai_key_set": bool(profile.get("openai_key")),
+        "elevenlabs_key_set": bool(profile.get("elevenlabs_key")),
+    }
+
+
+@app.post("/profile")
+def save_profile(
+    data: dict,
+    x_authentik_username: str = Header(default="anonymous", alias="X-authentik-username"),
+):
+    """Save the current user's API keys. Pass empty string to clear a key."""
+    profile = _load_profile(x_authentik_username)
+    for field in ("gemini_key", "openai_key", "elevenlabs_key"):
+        if field in data:
+            val = str(data[field]).strip()
+            if val:
+                profile[field] = val
+            else:
+                profile.pop(field, None)
+    _save_profile(x_authentik_username, profile)
+    return {"saved": True}
+
+
 @app.post("/upload")
-async def upload_files(files: List[UploadFile] = File(...)):
+async def upload_files(
+    files: List[UploadFile] = File(...),
+    x_authentik_username: str = Header(default="anonymous", alias="X-authentik-username"),
+):
     """Upload files (PDF, TXT, images) for podcast generation."""
+    upload_dir = _user_upload_dir(x_authentik_username)
     uploaded = []
     for f in files:
         ext = Path(f.filename).suffix.lower()
@@ -117,32 +192,55 @@ async def upload_files(files: List[UploadFile] = File(...)):
             raise HTTPException(status_code=400, detail=f"File too large: {f.filename} (max 20 MB)")
         file_id = uuid.uuid4().hex[:12]
         safe_name = f"{file_id}{ext}"
-        dest = os.path.join(UPLOAD_DIR, safe_name)
+        dest = os.path.join(upload_dir, safe_name)
         with open(dest, "wb") as out:
             out.write(content)
+        # Store original filename alongside the file
+        meta_path = dest + ".meta"
+        with open(meta_path, "w") as mf:
+            json.dump({"name": f.filename}, mf)
         uploaded.append({"id": safe_name, "name": f.filename, "size": len(content)})
     return {"files": uploaded}
 
 
 @app.get("/files")
-def list_uploaded_files():
-    """List all uploaded files."""
+def list_uploaded_files(
+    x_authentik_username: str = Header(default="anonymous", alias="X-authentik-username"),
+):
+    """List all uploaded files for the current user."""
+    upload_dir = _user_upload_dir(x_authentik_username)
     files = []
-    for name in sorted(os.listdir(UPLOAD_DIR)):
-        path = os.path.join(UPLOAD_DIR, name)
+    for name in sorted(os.listdir(upload_dir)):
+        if name.endswith(".meta"):
+            continue
+        path = os.path.join(upload_dir, name)
         if os.path.isfile(path):
-            files.append({"id": name, "size": os.path.getsize(path)})
+            meta_path = path + ".meta"
+            original_name = name
+            try:
+                with open(meta_path) as mf:
+                    original_name = json.load(mf).get("name", name)
+            except (FileNotFoundError, json.JSONDecodeError):
+                pass
+            files.append({"id": name, "name": original_name, "size": os.path.getsize(path)})
     return {"files": files}
 
 
 @app.delete("/files/{file_id}")
-def delete_uploaded_file(file_id: str):
-    """Delete an uploaded file."""
+def delete_uploaded_file(
+    file_id: str,
+    x_authentik_username: str = Header(default="anonymous", alias="X-authentik-username"),
+):
+    """Delete an uploaded file belonging to the current user."""
+    upload_dir = _user_upload_dir(x_authentik_username)
     safe = Path(file_id).name  # prevent path traversal
-    path = os.path.join(UPLOAD_DIR, safe)
+    path = os.path.join(upload_dir, safe)
     if not os.path.isfile(path):
         raise HTTPException(status_code=404, detail="File not found")
     os.remove(path)
+    meta_path = path + ".meta"
+    if os.path.exists(meta_path):
+        os.remove(meta_path)
     return {"deleted": safe}
 
 
@@ -166,16 +264,17 @@ def generate_podcast_endpoint(
         # --- LLM model resolution ---
         llm_model_name, api_key_label = _resolve_llm(data.get('llm_model'))
 
-        # --- User-provided API keys (override server defaults if supplied) ---
-        user_gemini_key = data.get('user_gemini_api_key', '').strip()
-        user_openai_key = data.get('user_openai_api_key', '').strip()
-        user_elevenlabs_key = data.get('user_elevenlabs_api_key', '').strip()
-        if user_gemini_key:
-            os.environ['GEMINI_API_KEY'] = user_gemini_key
-        if user_openai_key:
-            os.environ['OPENAI_API_KEY'] = user_openai_key
-        if user_elevenlabs_key:
-            os.environ['ELEVENLABS_API_KEY'] = user_elevenlabs_key
+        # --- API keys: request body > user profile > server defaults ---
+        profile = _load_profile(x_authentik_username)
+        gemini_key = (data.get('user_gemini_api_key') or profile.get('gemini_key') or '').strip()
+        openai_key = (data.get('user_openai_api_key') or profile.get('openai_key') or '').strip()
+        elevenlabs_key = (data.get('user_elevenlabs_api_key') or profile.get('elevenlabs_key') or '').strip()
+        if gemini_key:
+            os.environ['GEMINI_API_KEY'] = gemini_key
+        if openai_key:
+            os.environ['OPENAI_API_KEY'] = openai_key
+        if elevenlabs_key:
+            os.environ['ELEVENLABS_API_KEY'] = elevenlabs_key
 
         # --- Build conversation config ---
         user_config = {
@@ -202,12 +301,13 @@ def generate_podcast_endpoint(
         conversation_config = merge_configs(base_config, user_config)
 
         # --- Resolve uploaded file IDs to local paths ---
+        upload_dir = _user_upload_dir(x_authentik_username)
         urls = list(data.get('urls', []))
         image_paths = []
         text_input = data.get('text', '')
         for fid in data.get('file_ids', []):
             safe = Path(fid).name
-            fpath = os.path.join(UPLOAD_DIR, safe)
+            fpath = os.path.join(upload_dir, safe)
             if not os.path.isfile(fpath):
                 raise HTTPException(status_code=400, detail=f"Uploaded file not found: {fid}")
             ext = Path(fpath).suffix.lower()
@@ -250,7 +350,7 @@ def generate_podcast_endpoint(
             raise HTTPException(status_code=500, detail="Invalid result format")
 
     except HTTPException:
-        raise  # Re-raise auth/validation errors as-is
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
