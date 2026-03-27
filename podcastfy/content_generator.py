@@ -299,6 +299,16 @@ class ContentCleanerMixin:
             import re
             pattern = r'```scratchpad\n.*?```\n?|```plaintext\n.*?```\n?|```\n?|\[.*?\]'
             cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL)
+            # Also remove (scratchpad)...(end scratchpad) or (scratchpad)... up to first <Person tag
+            cleaned_text = re.sub(r'\(scratchpad\).*?\((?:end )?scratchpad\)', '', cleaned_text, flags=re.DOTALL | re.IGNORECASE)
+            # If still starts with (scratchpad), strip everything before the first <Person tag
+            if cleaned_text.strip().lower().startswith('(scratchpad)'):
+                person_match = re.search(r'<Person[12]>', cleaned_text)
+                if person_match:
+                    cleaned_text = cleaned_text[person_match.start():]
+                else:
+                    # Entire output is scratchpad with no dialogue
+                    cleaned_text = re.sub(r'\(scratchpad\).*', '', cleaned_text, flags=re.DOTALL | re.IGNORECASE)
             # Remove "xml" if followed by </Person1> or </Person2>
             cleaned_text = re.sub(r"xml(?=\s*</Person[12]>)", "", cleaned_text)
             # Remove underscores around words

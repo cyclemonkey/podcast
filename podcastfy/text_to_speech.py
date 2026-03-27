@@ -158,10 +158,9 @@ class TextToSpeech:
             text, self.ending_message, self.provider.get_supported_tags()
         )
         if not qa_pairs:
-            snippet = text[:300].replace("\n", " ")
             raise RuntimeError(
                 "No <Person1>/<Person2> dialogue pairs found in transcript. "
-                f"Transcript starts with: {snippet!r}"
+                f"Full transcript: {text!r}"
             )
         audio_files = []
         provider_config = self._get_provider_config()
