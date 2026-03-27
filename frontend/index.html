@@ -567,11 +567,13 @@
                 <div class="row field">
                     <div>
                         <label>Voice 1 (question)</label>
-                        <input type="text" id="voiceQ" placeholder="Default from config">
+                        <input type="text" id="voiceQ" placeholder="Default" list="voiceQList" autocomplete="off">
+                        <datalist id="voiceQList"></datalist>
                     </div>
                     <div>
                         <label>Voice 2 (answer)</label>
-                        <input type="text" id="voiceA" placeholder="Default from config">
+                        <input type="text" id="voiceA" placeholder="Default" list="voiceAList" autocomplete="off">
+                        <datalist id="voiceAList"></datalist>
                     </div>
                 </div>
                 <div class="row field">
@@ -766,6 +768,42 @@
             d.textContent = str;
             return d.innerHTML;
         }
+
+        // --- Voice presets per TTS model ---
+        const VOICE_PRESETS = {
+            edge: {
+                q: ['en-GB-SoniaNeural','en-GB-LibbyNeural','en-GB-MaisieNeural','en-US-JennyNeural','en-US-AriaNeural','en-US-MichelleNeural','en-AU-NatashaNeural'],
+                a: ['en-GB-RyanNeural','en-GB-ThomasNeural','en-US-EricNeural','en-US-GuyNeural','en-US-DavisNeural','en-AU-WilliamNeural'],
+            },
+            openai: {
+                q: ['alloy','echo','fable','nova','shimmer','onyx'],
+                a: ['alloy','echo','fable','nova','shimmer','onyx'],
+            },
+            gemini: {
+                q: ['en-US-Journey-D','en-US-Journey-F','en-US-Journey-O','en-GB-Journey-D','en-GB-Journey-F'],
+                a: ['en-US-Journey-D','en-US-Journey-F','en-US-Journey-O','en-GB-Journey-D','en-GB-Journey-F'],
+            },
+            geminimulti: {
+                q: ['A','B','C','D','E','F','R','S'],
+                a: ['A','B','C','D','E','F','R','S'],
+            },
+            elevenlabs: {
+                q: ['Chris','Alice','Aria','Bill','Brian','Callum','Charlotte','Domi','Dorothy','Emily','Elli','Ethan','Fin','Freya','George','Gigi','Giovanni','Glinda','Grace','Harry','James','Jeremy','Jessie','Jessica','Joseph','Josh','Liam','Lilly','Matilda','Michael','Mimi','Nicole','Patrick','Paul','Rachel','Ryan','Sam','Sarah','Serena','Thomas','Will'],
+                a: ['Chris','Alice','Aria','Bill','Brian','Callum','Charlotte','Domi','Dorothy','Emily','Elli','Ethan','Fin','Freya','George','Gigi','Giovanni','Glinda','Grace','Harry','James','Jeremy','Jessie','Jessica','Joseph','Josh','Liam','Lilly','Matilda','Michael','Mimi','Nicole','Patrick','Paul','Rachel','Ryan','Sam','Sarah','Serena','Thomas','Will'],
+            },
+        };
+
+        function updateVoicePresets() {
+            const model = document.getElementById('ttsModel').value;
+            const presets = VOICE_PRESETS[model] || { q: [], a: [] };
+            const dlQ = document.getElementById('voiceQList');
+            const dlA = document.getElementById('voiceAList');
+            dlQ.innerHTML = presets.q.map(v => `<option value="${v}">`).join('');
+            dlA.innerHTML = presets.a.map(v => `<option value="${v}">`).join('');
+        }
+
+        document.getElementById('ttsModel').addEventListener('change', updateVoicePresets);
+        updateVoicePresets();
 
         // --- Advanced ---
         function toggleAdvanced() {

@@ -324,11 +324,11 @@ async def generate_podcast_endpoint(request: Request, data: dict):
 
         llm_model_name, api_key_label = _resolve_llm(data.get('llm_model'))
 
-        # API keys: request body > user profile > server defaults
+        # API keys: request body > user profile > server env var
         profile = _load_profile(username)
-        gemini_key     = (data.get('user_gemini_api_key')     or profile.get('gemini_key')     or '').strip()
-        openai_key     = (data.get('user_openai_api_key')     or profile.get('openai_key')     or '').strip()
-        elevenlabs_key = (data.get('user_elevenlabs_api_key') or profile.get('elevenlabs_key') or '').strip()
+        gemini_key     = (data.get('user_gemini_api_key')     or profile.get('gemini_key')     or GEMINI_API_KEY).strip()
+        openai_key     = (data.get('user_openai_api_key')     or profile.get('openai_key')     or OPENAI_API_KEY).strip()
+        elevenlabs_key = (data.get('user_elevenlabs_api_key') or profile.get('elevenlabs_key') or ELEVENLABS_API_KEY).strip()
         if gemini_key:
             os.environ['GEMINI_API_KEY'] = gemini_key
         if openai_key:
