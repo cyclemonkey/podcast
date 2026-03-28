@@ -309,9 +309,9 @@
                 <label>Voice synthesis</label>
                 <div class="field-ctrl">
                     <select id="ttsModel" onchange="updateTtsMeta();syncSaveIcon('ttsModel')">
-                        <option value="gemini">Gemini</option>
                         <option value="openai">OpenAI</option>
                         <option value="edge">Edge (free)</option>
+                        <option value="gemini">Gemini</option>
                         <option value="geminimulti">Gemini Multi-speaker</option>
                         <option value="elevenlabs">ElevenLabs</option>
                     </select>
@@ -960,8 +960,8 @@ fetch('/me').then(r => r.json()).then(u => {
 const TTS_META = {
     openai:      { model: 'tts-1-hd',                cost: '$$$',  quality: '★★★★',  url: 'https://platform.openai.com/docs/pricing' },
     edge:        { model: 'Edge Neural (Microsoft)',  cost: 'Free', quality: '★★',    url: 'https://azure.microsoft.com/en-us/products/ai-services/text-to-speech', warn: 'Unreliable — may fail' },
-    gemini:      { model: 'Journey voices',           cost: '$$',   quality: '★★★',   url: 'https://cloud.google.com/text-to-speech/pricing' },
-    geminimulti: { model: 'Studio-MultiSpeaker',      cost: '$$',   quality: '★★★',   url: 'https://cloud.google.com/text-to-speech/pricing' },
+    gemini:      { model: 'Journey voices',      cost: '$$',   quality: '★★★',   url: 'https://cloud.google.com/text-to-speech/pricing', warn: 'Requires Google Cloud key (not AI Studio)' },
+    geminimulti: { model: 'Studio-MultiSpeaker', cost: '$$',   quality: '★★★',   url: 'https://cloud.google.com/text-to-speech/pricing', warn: 'Requires Google Cloud key (not AI Studio)' },
     elevenlabs:  { model: 'eleven_multilingual_v2',   cost: '$$$$', quality: '★★★★★', url: 'https://elevenlabs.io/pricing' },
 };
 const LLM_META = {
