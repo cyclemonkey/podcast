@@ -36,7 +36,7 @@ AUTHENTIK_SLUG          = os.getenv("AUTHENTIK_SLUG", "")
 APP_URL                 = os.getenv("APP_URL", "").rstrip("/")
 SESSION_SECRET          = os.getenv("SESSION_SECRET", "change-me-in-production")
 
-GEMINI_LLM_MODEL = os.getenv("GEMINI_LLM_MODEL", "gemini-1.5-flash")
+GEMINI_LLM_MODEL = os.getenv("GEMINI_LLM_MODEL", "gemini-2.0-flash-lite")
 OPENAI_LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
 
 LLM_MODEL_MAP = {
