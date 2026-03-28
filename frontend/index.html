@@ -272,20 +272,20 @@
         <h2>Options</h2>
         <div class="row-3 field">
             <div>
-                <label>TTS Provider</label>
-                <select id="ttsModel">
-                    <option value="openai">OpenAI</option>
-                    <option value="edge">Edge (free, unreliable)</option>
-                    <option value="gemini">Gemini</option>
-                    <option value="elevenlabs">ElevenLabs</option>
-                    <option value="geminimulti">Gemini Multi</option>
+                <label>TTS Provider <a href="#" id="ttsPricingLink" target="_blank" style="font-size:0.75rem;color:var(--accent)">pricing ↗</a></label>
+                <select id="ttsModel" onchange="updateTtsPricingLink()">
+                    <option value="openai">OpenAI tts-1-hd — $$$ · ★★★★</option>
+                    <option value="edge">Edge (free, unreliable) — free · ★★</option>
+                    <option value="gemini">Gemini Journey — $$ · ★★★</option>
+                    <option value="geminimulti">Gemini Multi-Speaker — $$ · ★★★</option>
+                    <option value="elevenlabs">ElevenLabs multilingual v2 — $$$$ · ★★★★★</option>
                 </select>
             </div>
             <div>
-                <label>LLM Model</label>
-                <select id="llmModel">
-                    <option value="openai">OpenAI</option>
-                    <option value="gemini">Gemini</option>
+                <label>LLM Model <a href="#" id="llmPricingLink" target="_blank" style="font-size:0.75rem;color:var(--accent)">pricing ↗</a></label>
+                <select id="llmModel" onchange="updateLlmPricingLink()">
+                    <option value="openai">OpenAI gpt-4o-mini — $$ · ★★★★</option>
+                    <option value="gemini">Gemini 2.0 Flash — $ · ★★★</option>
                 </select>
             </div>
             <div>
@@ -744,6 +744,26 @@ fetch('/me').then(r => r.json()).then(u => {
     document.getElementById('userName').textContent = 'Profile';
 });
 
+const TTS_PRICING = {
+    openai:      'https://platform.openai.com/docs/pricing',
+    edge:        'https://azure.microsoft.com/en-us/products/ai-services/text-to-speech',
+    gemini:      'https://cloud.google.com/text-to-speech/pricing',
+    geminimulti: 'https://cloud.google.com/text-to-speech/pricing',
+    elevenlabs:  'https://elevenlabs.io/pricing',
+};
+const LLM_PRICING = {
+    openai: 'https://platform.openai.com/docs/pricing',
+    gemini: 'https://ai.google.dev/pricing',
+};
+function updateTtsPricingLink() {
+    const v = document.getElementById('ttsModel').value;
+    document.getElementById('ttsPricingLink').href = TTS_PRICING[v] || '#';
+}
+function updateLlmPricingLink() {
+    const v = document.getElementById('llmModel').value;
+    document.getElementById('llmPricingLink').href = LLM_PRICING[v] || '#';
+}
+
 async function init() {
     const [resResp, filesResp, jobsResp] = await Promise.all([
         fetch('/resources').then(r => r.json()).catch(() => ({ urls: [], texts: [] })),
@@ -760,6 +780,8 @@ async function init() {
 }
 
 init();
+updateTtsPricingLink();
+updateLlmPricingLink();
 </script>
 </body>
 </html>
