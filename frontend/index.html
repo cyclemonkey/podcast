@@ -131,14 +131,46 @@
         .toggle.on::after { transform: translateX(20px); }
 
         /* Save-preference icon */
-        .save-icon {
-            background: none; border: none; cursor: pointer;
-            font-size: 1rem; opacity: 0.35; padding: 0 0.25rem;
-            transition: opacity 0.15s, transform 0.15s;
-            vertical-align: middle; line-height: 1;
+        .field-row { display: flex; flex-direction: column; gap: 0.25rem; }
+        .field-row label {
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+            color: #666; font-weight: 600;
         }
-        .save-icon:hover { opacity: 0.7; }
-        .save-icon.saved { opacity: 1; transform: scale(1.15); }
+        .field-ctrl { display: flex; align-items: center; gap: 0.4rem; }
+        .field-ctrl select,
+        .field-ctrl input { flex: 1; min-width: 0; }
+        .field-meta {
+            font-size: 0.7rem; color: #555; min-height: 1em;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .field-meta a { color: #555; text-decoration: underline; text-underline-offset: 2px; }
+        .field-meta a:hover { color: #888; }
+        .cost-badge { letter-spacing: 0.03em; }
+        .quality-badge { color: #888; }
+        .pin-btn {
+            background: none; border: none; cursor: pointer; padding: 2px 3px;
+            color: #333; line-height: 1; flex-shrink: 0;
+            transition: color 0.15s;
+        }
+        .pin-btn:hover { color: #888; }
+        .pin-btn.saved { color: #fff; }
+        .pin-btn svg { display: block; width: 14px; height: 14px; }
+
+        /* Options grid */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem 1.25rem;
+        }
+        @media (max-width: 480px) { .options-grid { grid-template-columns: 1fr; } }
+        .options-divider {
+            grid-column: 1 / -1;
+            border: none; border-top: 1px solid #1e1e1e; margin: 0.25rem 0;
+        }
+        .toggle-field-row {
+            grid-column: 1 / -1;
+            display: flex; align-items: center; justify-content: space-between;
+        }
 
         /* Generate button */
         .btn-generate {
@@ -270,49 +302,67 @@
     <!-- Options -->
     <div class="card">
         <h2>Options</h2>
-        <div class="row-3 field">
-            <div>
-                <label>TTS Provider <a href="#" id="ttsPricingLink" target="_blank" style="font-size:0.75rem;color:var(--accent)">pricing ↗</a></label>
-                <div style="display:flex;align-items:center;gap:0.25rem">
-                    <select id="ttsModel" onchange="updateTtsPricingLink();syncSaveIcon('ttsModel')" style="flex:1">
-                        <option value="openai">OpenAI tts-1-hd — $$$ · ★★★★</option>
-                        <option value="edge">Edge (free, unreliable) — free · ★★</option>
-                        <option value="gemini">Gemini Journey — $$ · ★★★</option>
-                        <option value="geminimulti">Gemini Multi-Speaker — $$ · ★★★</option>
-                        <option value="elevenlabs">ElevenLabs multilingual v2 — $$$$ · ★★★★★</option>
-                    </select>
-                    <button class="save-icon" id="ttsModel-pin" title="Save as default" onclick="togglePin('ttsModel')">📌</button>
-                </div>
-            </div>
-            <div>
-                <label>LLM Model <a href="#" id="llmPricingLink" target="_blank" style="font-size:0.75rem;color:var(--accent)">pricing ↗</a></label>
-                <div style="display:flex;align-items:center;gap:0.25rem">
-                    <select id="llmModel" onchange="updateLlmPricingLink();syncSaveIcon('llmModel')" style="flex:1">
-                        <option value="openai">OpenAI gpt-4o-mini — $$ · ★★★★</option>
-                        <option value="gemini">Gemini 2.0 Flash — $ · ★★★</option>
-                    </select>
-                    <button class="save-icon" id="llmModel-pin" title="Save as default" onclick="togglePin('llmModel')">📌</button>
-                </div>
-            </div>
-            <div>
-                <label>Language</label>
-                <div style="display:flex;align-items:center;gap:0.25rem">
-                    <input type="text" id="language" value="English" placeholder="e.g. Spanish" style="flex:1" oninput="syncSaveIcon('language')">
-                    <button class="save-icon" id="language-pin" title="Save as default" onclick="togglePin('language')">📌</button>
-                </div>
-            </div>
-        </div>
+        <div class="options-grid">
 
-        <div class="field toggle-row">
-            <span>Long-form podcast</span>
-            <div style="display:flex;align-items:center;gap:0.5rem">
-                <div class="toggle" id="longForm" onclick="this.classList.toggle('on');syncSaveIcon('longForm')"></div>
-                <button class="save-icon" id="longForm-pin" title="Save as default" onclick="togglePin('longForm')">📌</button>
+            <!-- TTS -->
+            <div class="field-row">
+                <label>Voice synthesis</label>
+                <div class="field-ctrl">
+                    <select id="ttsModel" onchange="updateTtsMeta();syncSaveIcon('ttsModel')">
+                        <option value="openai">OpenAI</option>
+                        <option value="edge">Edge (free)</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="geminimulti">Gemini Multi-speaker</option>
+                        <option value="elevenlabs">ElevenLabs</option>
+                    </select>
+                    <button class="pin-btn" id="ttsModel-pin" title="Save as default" onclick="togglePin('ttsModel')">
+                        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/></svg>
+                    </button>
+                </div>
+                <div class="field-meta" id="ttsMeta"></div>
             </div>
+
+            <!-- LLM -->
+            <div class="field-row">
+                <label>Transcript AI</label>
+                <div class="field-ctrl">
+                    <select id="llmModel" onchange="updateLlmMeta();syncSaveIcon('llmModel')">
+                        <option value="openai">OpenAI</option>
+                        <option value="gemini">Gemini</option>
+                    </select>
+                    <button class="pin-btn" id="llmModel-pin" title="Save as default" onclick="togglePin('llmModel')">
+                        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/></svg>
+                    </button>
+                </div>
+                <div class="field-meta" id="llmMeta"></div>
+            </div>
+
+            <!-- Language -->
+            <div class="field-row">
+                <label>Language</label>
+                <div class="field-ctrl">
+                    <input type="text" id="language" value="English" placeholder="e.g. Spanish" oninput="syncSaveIcon('language')">
+                    <button class="pin-btn" id="language-pin" title="Save as default" onclick="togglePin('language')">
+                        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Long-form -->
+            <div class="field-row">
+                <label>Long-form podcast</label>
+                <div class="field-ctrl" style="margin-top:0.35rem">
+                    <div class="toggle" id="longForm" onclick="this.classList.toggle('on');syncSaveIcon('longForm')" style="flex:0 0 auto"></div>
+                    <button class="pin-btn" id="longForm-pin" title="Save as default" onclick="togglePin('longForm')">
+                        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/></svg>
+                    </button>
+                </div>
+            </div>
+
         </div>
 
         <!-- Customisation -->
-        <h2 style="margin-top:1.25rem">Customisation</h2>
+        <h2 style="margin-top:1.5rem">Customisation</h2>
         <div class="row field">
             <div>
                 <label>Voice 1 (question)</label>
@@ -602,8 +652,8 @@ function applyPinnedPrefs() {
         }
     }
     // Trigger dependent updates
-    updateTtsPricingLink();
-    updateLlmPricingLink();
+    updateTtsMeta();
+    updateLlmMeta();
     PINNABLE.forEach(id => syncSaveIcon(id));
 }
 
@@ -800,25 +850,31 @@ fetch('/me').then(r => r.json()).then(u => {
     document.getElementById('userName').textContent = 'Profile';
 });
 
-const TTS_PRICING = {
-    openai:      'https://platform.openai.com/docs/pricing',
-    edge:        'https://azure.microsoft.com/en-us/products/ai-services/text-to-speech',
-    gemini:      'https://cloud.google.com/text-to-speech/pricing',
-    geminimulti: 'https://cloud.google.com/text-to-speech/pricing',
-    elevenlabs:  'https://elevenlabs.io/pricing',
+const TTS_META = {
+    openai:      { model: 'tts-1-hd',                cost: '$$$',  quality: '★★★★',  url: 'https://platform.openai.com/docs/pricing' },
+    edge:        { model: 'Edge Neural (Microsoft)',  cost: 'Free', quality: '★★',    url: 'https://azure.microsoft.com/en-us/products/ai-services/text-to-speech', warn: 'Unreliable — may fail' },
+    gemini:      { model: 'Journey voices',           cost: '$$',   quality: '★★★',   url: 'https://cloud.google.com/text-to-speech/pricing' },
+    geminimulti: { model: 'Studio-MultiSpeaker',      cost: '$$',   quality: '★★★',   url: 'https://cloud.google.com/text-to-speech/pricing' },
+    elevenlabs:  { model: 'eleven_multilingual_v2',   cost: '$$$$', quality: '★★★★★', url: 'https://elevenlabs.io/pricing' },
 };
-const LLM_PRICING = {
-    openai: 'https://platform.openai.com/docs/pricing',
-    gemini: 'https://ai.google.dev/pricing',
+const LLM_META = {
+    openai: { model: 'gpt-4o-mini', cost: '$$',  quality: '★★★★', url: 'https://platform.openai.com/docs/pricing' },
+    gemini: { model: '2.0 Flash',   cost: '$',   quality: '★★★',  url: 'https://ai.google.dev/pricing' },
 };
-function updateTtsPricingLink() {
-    const v = document.getElementById('ttsModel').value;
-    document.getElementById('ttsPricingLink').href = TTS_PRICING[v] || '#';
+
+function renderMeta(elId, meta) {
+    if (!meta) return;
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = `<span class="cost-badge">${meta.cost}</span>`
+        + `<span class="quality-badge">${meta.quality}</span>`
+        + `<span style="color:#333">·</span>`
+        + `<span style="font-style:italic;color:#444">${meta.model}</span>`
+        + `<a href="${meta.url}" target="_blank" style="margin-left:auto">pricing ↗</a>`
+        + (meta.warn ? `<span style="color:#a44"> ${meta.warn}</span>` : '');
 }
-function updateLlmPricingLink() {
-    const v = document.getElementById('llmModel').value;
-    document.getElementById('llmPricingLink').href = LLM_PRICING[v] || '#';
-}
+function updateTtsMeta() { renderMeta('ttsMeta', TTS_META[document.getElementById('ttsModel').value]); }
+function updateLlmMeta()  { renderMeta('llmMeta', LLM_META[document.getElementById('llmModel').value]); }
 
 async function init() {
     const [resResp, filesResp, jobsResp] = await Promise.all([
@@ -836,6 +892,8 @@ async function init() {
 }
 
 applyPinnedPrefs();
+updateTtsMeta();
+updateLlmMeta();
 init();
 </script>
 </body>
