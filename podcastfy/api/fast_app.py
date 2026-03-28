@@ -36,10 +36,13 @@ AUTHENTIK_SLUG          = os.getenv("AUTHENTIK_SLUG", "")
 APP_URL                 = os.getenv("APP_URL", "").rstrip("/")
 SESSION_SECRET          = os.getenv("SESSION_SECRET", "change-me-in-production")
 
+GEMINI_LLM_MODEL = os.getenv("GEMINI_LLM_MODEL", "gemini-1.5-flash")
+OPENAI_LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
+
 LLM_MODEL_MAP = {
-    "google": "gemini-2.0-flash",
-    "gemini": "gemini-2.0-flash",
-    "openai": "gpt-4o-mini",
+    "google": GEMINI_LLM_MODEL,
+    "gemini": GEMINI_LLM_MODEL,
+    "openai": OPENAI_LLM_MODEL,
 }
 
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -222,6 +225,14 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
         if openai_key:     os.environ["OPENAI_API_KEY"]     = openai_key
         if elevenlabs_key: os.environ["ELEVENLABS_API_KEY"] = elevenlabs_key
 
+        # Episode length → word count instruction
+        LENGTH_WORDS = {"5": 650, "10": 1300, "15": 1950, "20": 2600, "30": 3900}
+        episode_mins = str(gen_data.get("episode_length", "10"))
+        target_words = LENGTH_WORDS.get(episode_mins, 1300)
+        base_instructions = gen_data.get("user_instructions", base_config.get("user_instructions", ""))
+        length_instruction = f"Target approximately {target_words} words total in the conversation (about {episode_mins} minutes of audio)."
+        combined_instructions = f"{length_instruction} {base_instructions}".strip()
+
         user_config = {
             "creativity":           float(gen_data.get("creativity", base_config.get("creativity", 0.7))),
             "conversation_style":   gen_data.get("conversation_style",  base_config.get("conversation_style", [])),
@@ -231,7 +242,7 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
             "podcast_name":         gen_data.get("name",                 base_config.get("podcast_name")),
             "podcast_tagline":      gen_data.get("tagline",              base_config.get("podcast_tagline")),
             "output_language":      gen_data.get("output_language",      base_config.get("output_language", "English")),
-            "user_instructions":    gen_data.get("user_instructions",    base_config.get("user_instructions", "")),
+            "user_instructions":    combined_instructions,
             "engagement_techniques": gen_data.get("engagement_techniques", base_config.get("engagement_techniques", [])),
             "text_to_speech": {
                 "default_tts_model": tts_model,
@@ -369,6 +380,36 @@ async def profile_page(request: Request):
     if page.exists():
         return HTMLResponse(page.read_text())
     raise HTTPException(status_code=404, detail="Profile page not found")
+
+
+# ── Model discovery ───────────────────────────────────────────────────────────
+
+@app.get("/gemini-models")
+async def gemini_models(request: Request):
+    """Return available Gemini text-generation models for the user's API key."""
+    username = _session_user(request)
+    if not username:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    profile  = _load_profile(username)
+    api_key  = (profile.get("gemini_key") or GEMINI_API_KEY).strip()
+    if not api_key:
+        return {"models": [], "error": "No Gemini API key set"}
+    try:
+        import urllib.request, json as _json
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+        with urllib.request.urlopen(url, timeout=8) as resp:
+            data = _json.loads(resp.read())
+        models = [
+            m["name"].replace("models/", "")
+            for m in data.get("models", [])
+            if "generateContent" in m.get("supportedGenerationMethods", [])
+            and "flash" in m["name"].lower() or "pro" in m["name"].lower()
+        ]
+        # sort: latest first (simple lexicographic works for gemini-X.Y-* naming)
+        models.sort(reverse=True)
+        return {"models": models, "current": GEMINI_LLM_MODEL}
+    except Exception as e:
+        return {"models": [], "error": str(e), "current": GEMINI_LLM_MODEL}
 
 
 # ── User API routes ───────────────────────────────────────────────────────────

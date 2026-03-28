@@ -328,7 +328,9 @@
                 <div class="field-ctrl">
                     <select id="llmModel" onchange="updateLlmMeta();syncSaveIcon('llmModel')">
                         <option value="openai">OpenAI</option>
-                        <option value="gemini">Gemini</option>
+                        <optgroup id="geminiModelGroup" label="Gemini">
+                            <option value="gemini">Gemini (loading…)</option>
+                        </optgroup>
                     </select>
                     <button class="pin-btn" id="llmModel-pin" title="Save as default" onclick="togglePin('llmModel')">
                         <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/></svg>
@@ -348,11 +350,29 @@
                 </div>
             </div>
 
+            <!-- Episode length -->
+            <div class="field-row">
+                <label>Episode length</label>
+                <div class="field-ctrl">
+                    <select id="episodeLength" onchange="syncSaveIcon('episodeLength')" style="flex:1">
+                        <option value="5">~5 minutes</option>
+                        <option value="10" selected>~10 minutes</option>
+                        <option value="15">~15 minutes</option>
+                        <option value="20">~20 minutes</option>
+                        <option value="30">~30 minutes</option>
+                    </select>
+                    <button class="pin-btn" id="episodeLength-pin" title="Save as default" onclick="togglePin('episodeLength')">
+                        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/></svg>
+                    </button>
+                </div>
+            </div>
+
             <!-- Long-form -->
             <div class="field-row">
-                <label>Long-form podcast</label>
+                <label>Long-form mode</label>
                 <div class="field-ctrl" style="margin-top:0.35rem">
                     <div class="toggle" id="longForm" onclick="this.classList.toggle('on');syncSaveIcon('longForm')" style="flex:0 0 auto"></div>
+                    <span style="font-size:0.75rem;color:#555">Chunk long content into multi-part episodes</span>
                     <button class="pin-btn" id="longForm-pin" title="Save as default" onclick="togglePin('longForm')">
                         <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/></svg>
                     </button>
@@ -407,24 +427,112 @@
 
 <script>
 // ── Voice presets ─────────────────────────────────────────────────────────────
+// Each voice is { value, label } so the dropdown shows a human description.
 const VOICE_PRESETS = {
-    edge:       { q: ['en-GB-SoniaNeural','en-GB-LibbyNeural','en-GB-MaisieNeural','en-US-JennyNeural','en-US-AriaNeural','en-US-MichelleNeural','en-AU-NatashaNeural'], a: ['en-GB-RyanNeural','en-GB-ThomasNeural','en-US-EricNeural','en-US-GuyNeural','en-US-DavisNeural','en-AU-WilliamNeural'] },
-    openai:     { q: ['alloy','echo','fable','nova','shimmer','onyx'], a: ['alloy','echo','fable','nova','shimmer','onyx'] },
-    gemini:     { q: ['en-US-Journey-D','en-US-Journey-F','en-US-Journey-O','en-GB-Journey-D','en-GB-Journey-F'], a: ['en-US-Journey-D','en-US-Journey-F','en-US-Journey-O','en-GB-Journey-D','en-GB-Journey-F'] },
-    geminimulti:{ q: ['A','B','C','D','E','F','R','S'], a: ['A','B','C','D','E','F','R','S'] },
+    edge: {
+        q: [
+            { value: 'en-GB-SoniaNeural',     label: 'Sonia — en-GB · Female, warm' },
+            { value: 'en-GB-LibbyNeural',     label: 'Libby — en-GB · Female, friendly' },
+            { value: 'en-GB-MaisieNeural',    label: 'Maisie — en-GB · Female, young' },
+            { value: 'en-US-JennyNeural',     label: 'Jenny — en-US · Female, conversational' },
+            { value: 'en-US-AriaNeural',      label: 'Aria — en-US · Female, natural' },
+            { value: 'en-US-MichelleNeural',  label: 'Michelle — en-US · Female, friendly' },
+            { value: 'en-AU-NatashaNeural',   label: 'Natasha — en-AU · Female, professional' },
+        ],
+        a: [
+            { value: 'en-GB-RyanNeural',   label: 'Ryan — en-GB · Male, casual' },
+            { value: 'en-GB-ThomasNeural', label: 'Thomas — en-GB · Male, neutral' },
+            { value: 'en-US-EricNeural',   label: 'Eric — en-US · Male, calm' },
+            { value: 'en-US-GuyNeural',    label: 'Guy — en-US · Male, upbeat' },
+            { value: 'en-US-DavisNeural',  label: 'Davis — en-US · Male, confident' },
+            { value: 'en-AU-WilliamNeural',label: 'William — en-AU · Male, professional' },
+        ],
+    },
+    openai: {
+        q: [
+            { value: 'alloy',   label: 'Alloy — Neutral, balanced' },
+            { value: 'echo',    label: 'Echo — Male, clear' },
+            { value: 'fable',   label: 'Fable — en-GB · Male, expressive' },
+            { value: 'nova',    label: 'Nova — Female, warm' },
+            { value: 'shimmer', label: 'Shimmer — Female, clear' },
+            { value: 'onyx',    label: 'Onyx — Male, deep, authoritative' },
+        ],
+        a: [
+            { value: 'alloy',   label: 'Alloy — Neutral, balanced' },
+            { value: 'echo',    label: 'Echo — Male, clear' },
+            { value: 'fable',   label: 'Fable — en-GB · Male, expressive' },
+            { value: 'nova',    label: 'Nova — Female, warm' },
+            { value: 'shimmer', label: 'Shimmer — Female, clear' },
+            { value: 'onyx',    label: 'Onyx — Male, deep, authoritative' },
+        ],
+    },
+    gemini: {
+        q: [
+            { value: 'en-US-Journey-D', label: 'Journey D — en-US · Male, conversational' },
+            { value: 'en-US-Journey-F', label: 'Journey F — en-US · Female, conversational' },
+            { value: 'en-US-Journey-O', label: 'Journey O — en-US · Female, bright' },
+            { value: 'en-GB-Journey-D', label: 'Journey D — en-GB · Male, conversational' },
+            { value: 'en-GB-Journey-F', label: 'Journey F — en-GB · Female, conversational' },
+        ],
+        a: [
+            { value: 'en-US-Journey-D', label: 'Journey D — en-US · Male, conversational' },
+            { value: 'en-US-Journey-F', label: 'Journey F — en-US · Female, conversational' },
+            { value: 'en-US-Journey-O', label: 'Journey O — en-US · Female, bright' },
+            { value: 'en-GB-Journey-D', label: 'Journey D — en-GB · Male, conversational' },
+            { value: 'en-GB-Journey-F', label: 'Journey F — en-GB · Female, conversational' },
+        ],
+    },
+    geminimulti: {
+        q: [
+            { value: 'R', label: 'Speaker R — Male' },
+            { value: 'S', label: 'Speaker S — Female' },
+            { value: 'A', label: 'Speaker A' },
+            { value: 'B', label: 'Speaker B' },
+        ],
+        a: [
+            { value: 'S', label: 'Speaker S — Female' },
+            { value: 'R', label: 'Speaker R — Male' },
+            { value: 'A', label: 'Speaker A' },
+            { value: 'B', label: 'Speaker B' },
+        ],
+    },
     elevenlabs: {
-        q: ['Chris','Alice','Aria','Bill','Brian','Callum','Charlotte','Domi','Dorothy','Emily','Elli','Ethan','Fin','Freya','George','Gigi','Giovanni','Glinda','Grace','Harry','James','Jeremy','Jessie','Jessica','Joseph','Josh','Liam','Lilly','Matilda','Michael','Mimi','Nicole','Patrick','Paul','Rachel','Ryan','Sam','Sarah','Serena','Thomas','Will'],
-        a: ['Chris','Alice','Aria','Bill','Brian','Callum','Charlotte','Domi','Dorothy','Emily','Elli','Ethan','Fin','Freya','George','Gigi','Giovanni','Glinda','Grace','Harry','James','Jeremy','Jessie','Jessica','Joseph','Josh','Liam','Lilly','Matilda','Michael','Mimi','Nicole','Patrick','Paul','Rachel','Ryan','Sam','Sarah','Serena','Thomas','Will'],
+        q: [
+            { value: 'Alice',     label: 'Alice — en-GB · Female, confident' },
+            { value: 'Aria',      label: 'Aria — en-US · Female, expressive' },
+            { value: 'Brian',     label: 'Brian — en-US · Male, deep' },
+            { value: 'Callum',    label: 'Callum — en-GB · Male, authoritative' },
+            { value: 'Charlotte', label: 'Charlotte — en-GB · Female, seductive' },
+            { value: 'Chris',     label: 'Chris — en-US · Male, casual' },
+            { value: 'Daniel',    label: 'Daniel — en-GB · Male, news presenter' },
+            { value: 'Emily',     label: 'Emily — en-US · Female, calm' },
+            { value: 'Freya',     label: 'Freya — en-US · Female, warm' },
+            { value: 'George',    label: 'George — en-GB · Male, warm' },
+            { value: 'Jessica',   label: 'Jessica — en-US · Female, expressive' },
+            { value: 'Josh',      label: 'Josh — en-US · Male, deep' },
+            { value: 'Laura',     label: 'Laura — en-US · Female, upbeat' },
+            { value: 'Liam',      label: 'Liam — en-US · Male, neutral' },
+            { value: 'Matilda',   label: 'Matilda — en-US · Female, warm' },
+            { value: 'Nicole',    label: 'Nicole — en-US · Female, whisper' },
+            { value: 'Rachel',    label: 'Rachel — en-US · Female, calm' },
+            { value: 'Ryan',      label: 'Ryan — en-US · Male, narration' },
+            { value: 'Sarah',     label: 'Sarah — en-US · Female, soft' },
+            { value: 'Thomas',    label: 'Thomas — en-US · Male, calm' },
+            { value: 'Will',      label: 'Will — en-US · Male, friendly' },
+        ],
+        a: [],  // filled same as q below
     },
 };
+VOICE_PRESETS.elevenlabs.a = VOICE_PRESETS.elevenlabs.q;
 
 function buildVoiceSelect(id, voices) {
     const sel  = document.getElementById(id);
     const prev = sel.value;
     sel.innerHTML = '<option value="">— Default —</option>'
-        + voices.map(v => `<option value="${v}">${v}</option>`).join('')
+        + voices.map(v => `<option value="${v.value}">${v.label}</option>`).join('')
         + '<option value="__custom__">Custom (type below)...</option>';
-    if (prev && voices.includes(prev)) sel.value = prev;
+    const vals = voices.map(v => v.value);
+    if (prev && vals.includes(prev)) sel.value = prev;
 }
 
 function onVoiceChange(w) {
@@ -603,7 +711,7 @@ async function deleteText(id) {
 }
 
 // ── Saved defaults (pinned preferences) ──────────────────────────────────────
-const PINNABLE = ['ttsModel', 'llmModel', 'language', 'longForm'];
+const PINNABLE = ['ttsModel', 'llmModel', 'language', 'longForm', 'episodeLength'];
 const PREF_KEY = 'podcastPrefs';
 
 function loadPrefs() {
@@ -778,6 +886,7 @@ async function generate() {
         llm_model:       document.getElementById('llmModel').value,
         output_language: document.getElementById('language').value || 'English',
         is_long_form:    document.getElementById('longForm').classList.contains('on'),
+        episode_length:  document.getElementById('episodeLength').value,
     };
 
     if (voiceQ || voiceA) {
@@ -874,7 +983,39 @@ function renderMeta(elId, meta) {
         + (meta.warn ? `<span style="color:#a44"> ${meta.warn}</span>` : '');
 }
 function updateTtsMeta() { renderMeta('ttsMeta', TTS_META[document.getElementById('ttsModel').value]); }
-function updateLlmMeta()  { renderMeta('llmMeta', LLM_META[document.getElementById('llmModel').value]); }
+function updateLlmMeta() {
+    const val  = document.getElementById('llmModel').value;
+    const meta = LLM_META[val] || LLM_META['gemini'];  // fallback for dynamic model names
+    renderMeta('llmMeta', meta);
+}
+
+async function loadGeminiModels() {
+    const group = document.getElementById('geminiModelGroup');
+    const sel   = document.getElementById('llmModel');
+    try {
+        const data = await fetch('/gemini-models').then(r => r.json());
+        if (data.models && data.models.length) {
+            group.innerHTML = '';
+            data.models.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                // pretty label: gemini-1.5-flash → Gemini 1.5 Flash
+                opt.textContent = m.replace(/^gemini-/, 'Gemini ').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                group.appendChild(opt);
+            });
+            // restore pinned or default selection
+            const prefs = loadPrefs();
+            if (prefs['llmModel'] && sel.querySelector(`option[value="${prefs['llmModel']}"]`)) {
+                sel.value = prefs['llmModel'];
+            }
+        } else {
+            // keep placeholder, show error if any
+            if (data.error) group.querySelector('option').textContent = 'Gemini (key needed)';
+        }
+    } catch { /* network error — keep placeholder */ }
+    updateLlmMeta();
+    syncSaveIcon('llmModel');
+}
 
 async function init() {
     const [resResp, filesResp, jobsResp] = await Promise.all([
@@ -893,8 +1034,8 @@ async function init() {
 
 applyPinnedPrefs();
 updateTtsMeta();
-updateLlmMeta();
 init();
+loadGeminiModels();
 </script>
 </body>
 </html>
