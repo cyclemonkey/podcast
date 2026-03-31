@@ -1,5 +1,5 @@
 """
-FastAPI implementation for Myers Podcast generation service.
+FastAPI implementation for Podcast generation service.
 Authentication via OIDC/OAuth2 against Authentik with session cookies.
 """
 
@@ -159,13 +159,52 @@ def _update_job(username: str, job_id: str, updates: dict) -> None:
     _save_jobs(username, jobs)
 
 
+def _load_projects(username: str) -> list:
+    path = os.path.join(_user_dir(username), "projects.json")
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def _save_projects(username: str, projects: list) -> None:
+    path = os.path.join(_user_dir(username), "projects.json")
+    with open(path, "w") as f:
+        json.dump(projects, f)
+
+
+def _load_share_tokens() -> dict:
+    path = os.path.join(USER_DATA_DIR, "share_tokens.json")
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_share_tokens(tokens: dict) -> None:
+    os.makedirs(USER_DATA_DIR, exist_ok=True)
+    path = os.path.join(USER_DATA_DIR, "share_tokens.json")
+    with open(path, "w") as f:
+        json.dump(tokens, f)
+
+
+def _create_share_token(username: str, job_id: str) -> str:
+    token = uuid.uuid4().hex
+    tokens = _load_share_tokens()
+    tokens[token] = {"username": username, "job_id": job_id}
+    _save_share_tokens(tokens)
+    return token
+
+
 def _session_user(request: Request) -> str:
     return request.session.get("username", "")
 
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="Myers Podcast")
+app = FastAPI(title="Podcast")
 
 app.add_middleware(
     SessionMiddleware,
@@ -305,11 +344,13 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
                 "Check that your API key is valid and the selected content is not empty."
             )
 
+        share_token = _create_share_token(username, job_id)
         _update_job(username, job_id, {
             "status":       "done",
             "audio_file":   audio_filename,
             "file_size":    file_size,
             "completed_at": datetime.now(timezone.utc).isoformat(),
+            "share_token":  share_token,
         })
         logger.info("Job %s done for %s — %d bytes", job_id, username, file_size)
 
@@ -596,14 +637,35 @@ async def generate_podcast_endpoint(request: Request, data: dict):
     else:
         title = "Podcast"
 
+    # Snapshot of generation params for "next episode" feature
+    gen_snapshot = {
+        "urls":        urls,
+        "file_ids":    file_ids,
+        "text":        text,
+        "tts_model":   data.get("tts_model"),
+        "llm_model":   data.get("llm_model"),
+        "voices":      data.get("voices"),
+        "creativity":  data.get("creativity"),
+        "episode_length": data.get("episode_length"),
+        "is_long_form":   data.get("is_long_form"),
+        "output_language": data.get("output_language"),
+        "name":        data.get("name"),
+        "tagline":     data.get("tagline"),
+        "conversation_style":    data.get("conversation_style"),
+        "engagement_techniques": data.get("engagement_techniques"),
+    }
+
     jobs = _load_jobs(username)
     jobs.insert(0, {
-        "id":         job_id,
-        "status":     "generating",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "title":      title,
-        "audio_file": None,
-        "error":      None,
+        "id":           job_id,
+        "status":       "generating",
+        "created_at":   datetime.now(timezone.utc).isoformat(),
+        "title":        title,
+        "description":  data.get("description", ""),
+        "project_id":   data.get("project_id", ""),
+        "audio_file":   None,
+        "error":        None,
+        "gen_snapshot": gen_snapshot,
     })
     _save_jobs(username, jobs)
 
@@ -653,6 +715,92 @@ async def serve_audio(job_id: str, request: Request):
         media_type="audio/mpeg",
         headers={"Content-Disposition": f'inline; filename="{job_id}.mp3"'},
     )
+
+
+@app.patch("/jobs/{job_id}")
+async def patch_job(job_id: str, request: Request, data: dict):
+    username = _session_user(request) or "anonymous"
+    jobs = _load_jobs(username)
+    job = next((j for j in jobs if j["id"] == job_id), None)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    for field in ("title", "description"):
+        if field in data:
+            job[field] = str(data[field])
+    _save_jobs(username, jobs)
+    return job
+
+
+# ── Public share routes (no auth) ─────────────────────────────────────────────
+
+@app.get("/public/audio/{token}")
+async def public_audio(token: str):
+    tokens = _load_share_tokens()
+    entry  = tokens.get(token)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Share link not found or expired")
+    username = entry["username"]
+    job_id   = entry["job_id"]
+    job = next((j for j in _load_jobs(username) if j["id"] == job_id), None)
+    if not job or job.get("status") != "done" or not job.get("audio_file"):
+        raise HTTPException(status_code=404, detail="Audio not found")
+    audio_path = os.path.join(_user_podcasts_dir(username), job["audio_file"])
+    if not os.path.isfile(audio_path):
+        raise HTTPException(status_code=404, detail="Audio file not found on disk")
+    filename = (job.get("title") or job_id)[:60].replace("/", "-") + ".mp3"
+    return FileResponse(
+        audio_path,
+        media_type="audio/mpeg",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
+# ── Project routes ────────────────────────────────────────────────────────────
+
+@app.get("/projects")
+async def list_projects(request: Request):
+    username = _session_user(request) or "anonymous"
+    return {"projects": _load_projects(username)}
+
+
+@app.post("/projects")
+async def create_project(request: Request, data: dict):
+    username = _session_user(request) or "anonymous"
+    name = data.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Project name required")
+    projects = _load_projects(username)
+    project = {
+        "id":          uuid.uuid4().hex[:12],
+        "name":        name,
+        "description": data.get("description", "").strip(),
+        "created_at":  datetime.now(timezone.utc).isoformat(),
+    }
+    projects.append(project)
+    _save_projects(username, projects)
+    return project
+
+
+@app.patch("/projects/{project_id}")
+async def update_project(project_id: str, request: Request, data: dict):
+    username = _session_user(request) or "anonymous"
+    projects = _load_projects(username)
+    project  = next((p for p in projects if p["id"] == project_id), None)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    for field in ("name", "description"):
+        if field in data:
+            project[field] = str(data[field]).strip()
+    _save_projects(username, projects)
+    return project
+
+
+@app.delete("/projects/{project_id}")
+async def delete_project(project_id: str, request: Request):
+    username = _session_user(request) or "anonymous"
+    projects = _load_projects(username)
+    _save_projects(username, [p for p in projects if p["id"] != project_id])
+    return {"deleted": project_id}
 
 
 @app.get("/health")
