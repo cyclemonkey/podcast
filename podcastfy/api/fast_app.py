@@ -28,6 +28,9 @@ OPENAI_API_KEY     = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY", "")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 
+# ── Admin users ──────────────────────────────────────────────────────────────
+ADMIN_USERS = {u.strip() for u in os.getenv("ADMIN_USERS", "").split(",") if u.strip()}
+
 # ── Authentik / OIDC config ───────────────────────────────────────────────────
 AUTHENTIK_URL           = os.getenv("AUTHENTIK_URL", "").rstrip("/")
 AUTHENTIK_CLIENT_ID     = os.getenv("AUTHENTIK_CLIENT_ID", "")
@@ -202,6 +205,32 @@ def _session_user(request: Request) -> str:
     return request.session.get("username", "")
 
 
+def _is_admin(request: Request) -> bool:
+    username = _session_user(request)
+    # If no ADMIN_USERS configured, anonymous users get admin access (solo setup)
+    if not ADMIN_USERS:
+        return True
+    return username in ADMIN_USERS
+
+
+def _load_admin_keys() -> dict:
+    """Load API keys set by an admin user (stored in _admin/settings.json)."""
+    path = os.path.join(USER_DATA_DIR, "_admin", "settings.json")
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_admin_keys(data: dict) -> None:
+    dir_path = os.path.join(USER_DATA_DIR, "_admin")
+    os.makedirs(dir_path, exist_ok=True)
+    path = os.path.join(dir_path, "settings.json")
+    with open(path, "w") as f:
+        json.dump(data, f)
+
+
 # ── App setup ─────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="Podcast")
@@ -245,20 +274,20 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
 
         llm_model_name, api_key_label = _resolve_llm(gen_data.get("llm_model"))
 
-        profile        = _load_profile(username)
-        gemini_key     = (gen_data.get("user_gemini_api_key")     or profile.get("gemini_key")     or GEMINI_API_KEY).strip()
-        openai_key     = (gen_data.get("user_openai_api_key")     or profile.get("openai_key")     or OPENAI_API_KEY).strip()
-        elevenlabs_key = (gen_data.get("user_elevenlabs_api_key") or profile.get("elevenlabs_key") or ELEVENLABS_API_KEY).strip()
+        admin_keys     = _load_admin_keys()
+        gemini_key     = (admin_keys.get("gemini_key")     or GEMINI_API_KEY).strip()
+        openai_key     = (admin_keys.get("openai_key")     or OPENAI_API_KEY).strip()
+        elevenlabs_key = (admin_keys.get("elevenlabs_key") or ELEVENLABS_API_KEY).strip()
 
         # Pre-flight: verify the required LLM key is present
         if api_key_label == "GEMINI_API_KEY" and not gemini_key:
-            raise ValueError("Gemini LLM selected but no Gemini API key is set. Add your key in Profile or switch LLM to OpenAI.")
+            raise ValueError("Gemini LLM selected but no Gemini API key is set. Ask an admin to configure API keys.")
         if api_key_label == "OPENAI_API_KEY" and not openai_key:
-            raise ValueError("OpenAI LLM selected but no OpenAI API key is set. Add your key in Profile.")
+            raise ValueError("OpenAI LLM selected but no OpenAI API key is set. Ask an admin to configure API keys.")
         if tts_model in ("openai",) and not openai_key:
-            raise ValueError("OpenAI TTS selected but no OpenAI API key is set. Add your key in Profile.")
+            raise ValueError("OpenAI TTS selected but no OpenAI API key is set. Ask an admin to configure API keys.")
         if tts_model in ("elevenlabs",) and not elevenlabs_key:
-            raise ValueError("ElevenLabs TTS selected but no ElevenLabs API key is set. Add your key in Profile.")
+            raise ValueError("ElevenLabs TTS selected but no ElevenLabs API key is set. Ask an admin to configure API keys.")
 
         if gemini_key:     os.environ["GEMINI_API_KEY"]     = gemini_key
         if openai_key:     os.environ["OPENAI_API_KEY"]     = openai_key
@@ -462,6 +491,7 @@ async def me(request: Request):
         "username":    username,
         "name":        request.session.get("name", ""),
         "email":       request.session.get("email", ""),
+        "is_admin":    _is_admin(request),
         "logout_url":  "/logout",
         "profile_url": "/user/profile",
     }
@@ -469,30 +499,32 @@ async def me(request: Request):
 
 @app.get("/profile")
 async def get_profile(request: Request):
-    username = _session_user(request) or "anonymous"
-    profile  = _load_profile(username)
+    if not _is_admin(request):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    admin_keys = _load_admin_keys()
     return {
-        "gemini_key":         profile.get("gemini_key", ""),
-        "openai_key":         profile.get("openai_key", ""),
-        "elevenlabs_key":     profile.get("elevenlabs_key", ""),
-        "gemini_key_set":     bool(profile.get("gemini_key")),
-        "openai_key_set":     bool(profile.get("openai_key")),
-        "elevenlabs_key_set": bool(profile.get("elevenlabs_key")),
+        "gemini_key":         admin_keys.get("gemini_key", ""),
+        "openai_key":         admin_keys.get("openai_key", ""),
+        "elevenlabs_key":     admin_keys.get("elevenlabs_key", ""),
+        "gemini_key_set":     bool(admin_keys.get("gemini_key")),
+        "openai_key_set":     bool(admin_keys.get("openai_key")),
+        "elevenlabs_key_set": bool(admin_keys.get("elevenlabs_key")),
     }
 
 
 @app.post("/profile")
 async def save_profile(request: Request, data: dict):
-    username = _session_user(request) or "anonymous"
-    profile  = _load_profile(username)
+    if not _is_admin(request):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    admin_keys = _load_admin_keys()
     for field in ("gemini_key", "openai_key", "elevenlabs_key"):
         if field in data:
             val = str(data[field]).strip()
             if val:
-                profile[field] = val
+                admin_keys[field] = val
             else:
-                profile.pop(field, None)
-    _save_profile(username, profile)
+                admin_keys.pop(field, None)
+    _save_admin_keys(admin_keys)
     return {"saved": True}
 
 

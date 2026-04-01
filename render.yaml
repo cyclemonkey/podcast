@@ -27,4 +27,12 @@ services:
         sync: false
       - key: SESSION_SECRET
         sync: false
+      - key: USER_DATA_DIR
+        value: /data
+      - key: ADMIN_USERS
+        sync: false
     healthCheckPath: /health
+    disk:
+      name: podcast-data
+      mountPath: /data
+      sizeGB: 1
