@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: myers-podcast
+    name: podcast
     runtime: python
     pythonVersion: "3.12"
     buildCommand: pip install -r requirements.txt
