@@ -825,6 +825,7 @@ function makePodcastItem(job) {
             <div class="podcast-header">
                 <span class="podcast-title" title="${escHtml(job.title)}">${escHtml(job.title)}</span>
                 <div class="podcast-actions">
+                    ${job.gen_snapshot ? `<button class="btn-sm" onclick="loadSnapshot('${job.id}')">Next Episode</button>` : ''}
                     ${shareToken ? `<button class="btn-sm" onclick="shareJob('${shareToken}',this)">Share</button>` : ''}
                     <button class="btn-sm" onclick="editJob('${job.id}')">Edit</button>
                     <a class="btn-sm" href="${audioUrl}" download="${job.id}.mp3">Download</a>
@@ -935,6 +936,87 @@ async function saveEdit(jobId) {
         const updated = await resp.json();
         el.replaceWith(makePodcastItem(updated));
     } catch (e) { showError('Failed to save: ' + e.message); }
+}
+
+// ── Next Episode (load snapshot) ─────────────────────────────────────────────
+async function loadSnapshot(jobId) {
+    try {
+        const resp = await fetch('/jobs/' + jobId);
+        if (!resp.ok) return;
+        const job = await resp.json();
+        const s = job.gen_snapshot;
+        if (!s) return;
+
+        // Set options
+        if (s.tts_model) { document.getElementById('ttsModel').value = s.tts_model; updateVoicePresets(); updateTtsMeta(); }
+        if (s.llm_model) { document.getElementById('llmModel').value = s.llm_model; updateLlmMeta(); }
+        if (s.output_language) document.getElementById('language').value = s.output_language;
+        if (s.episode_length) document.getElementById('episodeLength').value = s.episode_length;
+        document.getElementById('longForm').classList.toggle('on', !!s.is_long_form);
+        if (s.creativity != null) document.getElementById('creativity').value = s.creativity;
+        if (s.name) document.getElementById('podcastName').value = s.name;
+
+        // Set voices
+        if (s.voices) {
+            const presets = VOICE_PRESETS[s.tts_model] || { q: [], a: [] };
+            const qVals = presets.q.map(v => v.value);
+            const aVals = presets.a.map(v => v.value);
+
+            if (s.voices.question) {
+                if (qVals.includes(s.voices.question)) {
+                    document.getElementById('voiceQSelect').value = s.voices.question;
+                    document.getElementById('voiceQ').style.display = 'none';
+                } else {
+                    document.getElementById('voiceQSelect').value = '__custom__';
+                    document.getElementById('voiceQ').value = s.voices.question;
+                    document.getElementById('voiceQ').style.display = '';
+                }
+            }
+            if (s.voices.answer) {
+                if (aVals.includes(s.voices.answer)) {
+                    document.getElementById('voiceASelect').value = s.voices.answer;
+                    document.getElementById('voiceA').style.display = 'none';
+                } else {
+                    document.getElementById('voiceASelect').value = '__custom__';
+                    document.getElementById('voiceA').value = s.voices.answer;
+                    document.getElementById('voiceA').style.display = '';
+                }
+            }
+        }
+
+        // Check matching URLs in the source list
+        document.querySelectorAll('#urlList .resource-item input[type=checkbox]').forEach(cb => cb.checked = false);
+        if (s.urls && s.urls.length) {
+            const urlSet = new Set(s.urls);
+            document.querySelectorAll('#urlList .resource-item').forEach(el => {
+                const u = savedUrls.find(u => u.id === el.dataset.id);
+                if (u && urlSet.has(u.url)) el.querySelector('input[type=checkbox]').checked = true;
+            });
+        }
+
+        // Check matching files
+        document.querySelectorAll('#fileList .resource-item input[type=checkbox]').forEach(cb => cb.checked = false);
+        if (s.file_ids && s.file_ids.length) {
+            const idSet = new Set(s.file_ids);
+            document.querySelectorAll('#fileList .resource-item').forEach(el => {
+                if (idSet.has(el.dataset.id)) el.querySelector('input[type=checkbox]').checked = true;
+            });
+        }
+
+        // Check matching text snippets
+        document.querySelectorAll('#textList .resource-item input[type=checkbox]').forEach(cb => cb.checked = false);
+        if (s.text) {
+            const parts = s.text.split('\n\n---\n\n');
+            const textSet = new Set(parts);
+            document.querySelectorAll('#textList .resource-item').forEach(el => {
+                const t = savedTexts.find(t => t.id === el.dataset.id);
+                if (t && textSet.has(t.content)) el.querySelector('input[type=checkbox]').checked = true;
+            });
+        }
+
+        // Scroll to top so the user sees the loaded form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) { showError('Failed to load episode settings: ' + e.message); }
 }
 
 // ── Generate ──────────────────────────────────────────────────────────────────
