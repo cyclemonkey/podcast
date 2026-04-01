@@ -254,6 +254,39 @@
         }
         .error-msg.visible { display: block; }
 
+        /* Projects */
+        .project-bar {
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: 1.25rem; flex-wrap: wrap;
+        }
+        .project-chip {
+            padding: 0.35rem 0.75rem; border: 1px solid #333; border-radius: 16px;
+            background: transparent; color: #888; font-size: 0.8rem;
+            cursor: pointer; transition: all 0.15s; white-space: nowrap;
+        }
+        .project-chip:hover { border-color: #555; color: #ccc; }
+        .project-chip.active { border-color: #fff; color: #fff; background: #222; }
+        .project-chip .chip-delete {
+            margin-left: 0.3rem; color: #555; font-size: 0.9rem;
+            display: none; vertical-align: middle;
+        }
+        .project-chip.active .chip-delete { display: inline; }
+        .project-chip .chip-delete:hover { color: #e74c3c; }
+        .project-add-btn {
+            width: 28px; height: 28px; border: 1px dashed #333; border-radius: 50%;
+            background: transparent; color: #555; font-size: 1.1rem; line-height: 1;
+            cursor: pointer; transition: all 0.15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .project-add-btn:hover { border-color: #555; color: #aaa; }
+        .project-inline-form {
+            display: flex; gap: 0.4rem; align-items: center;
+        }
+        .project-inline-form input {
+            width: 140px; padding: 0.3rem 0.6rem; font-size: 0.8rem;
+            border-radius: 16px;
+        }
+
         /* Responsive */
         @media (max-width: 500px) { .row, .row-3 { grid-template-columns: 1fr; } }
     </style>
@@ -270,6 +303,17 @@
         <a href="/user/profile" id="userName" style="text-decoration:none;color:#ccc">...</a>
         <div class="user-links">
             <a href="/logout" class="logout-link" id="logoutLink" style="display:none">Log out</a>
+        </div>
+    </div>
+
+    <!-- Projects -->
+    <div class="project-bar" id="projectBar">
+        <span class="project-chip active" onclick="selectProject('')">All</span>
+        <!-- project chips injected here -->
+        <button class="project-add-btn" id="projectAddBtn" title="New project" onclick="showProjectForm()">+</button>
+        <div class="project-inline-form" id="projectForm" style="display:none">
+            <input type="text" id="newProjectName" placeholder="Project name" onkeydown="if(event.key==='Enter')createProject();if(event.key==='Escape')hideProjectForm()">
+            <button class="btn-add" style="padding:0.3rem 0.6rem;font-size:0.8rem;border-radius:16px" onclick="createProject()">Add</button>
         </div>
     </div>
 
@@ -784,6 +828,75 @@ function applyPinnedPrefs() {
     PINNABLE.forEach(id => syncSaveIcon(id));
 }
 
+// ── Projects ─────────────────────────────────────────────────────────────────
+let projects = [];
+let activeProjectId = '';
+let allJobs = [];
+
+function renderProjects() {
+    const bar = document.getElementById('projectBar');
+    bar.querySelectorAll('.project-chip:not(:first-child)').forEach(el => el.remove());
+    const addBtn = document.getElementById('projectAddBtn');
+    projects.forEach(p => {
+        const chip = document.createElement('span');
+        chip.className = 'project-chip' + (p.id === activeProjectId ? ' active' : '');
+        chip.innerHTML = `${escHtml(p.name)}<span class="chip-delete" onclick="event.stopPropagation();deleteProject('${p.id}')">&times;</span>`;
+        chip.onclick = () => selectProject(p.id);
+        bar.insertBefore(chip, addBtn);
+    });
+    // Update "All" chip
+    bar.querySelector('.project-chip').classList.toggle('active', activeProjectId === '');
+}
+
+function selectProject(id) {
+    activeProjectId = id;
+    renderProjects();
+    renderFilteredJobs();
+}
+
+function renderFilteredJobs() {
+    const filtered = activeProjectId
+        ? allJobs.filter(j => j.project_id === activeProjectId)
+        : allJobs;
+    renderJobs(filtered);
+}
+
+function showProjectForm() {
+    document.getElementById('projectForm').style.display = '';
+    document.getElementById('projectAddBtn').style.display = 'none';
+    document.getElementById('newProjectName').focus();
+}
+
+function hideProjectForm() {
+    document.getElementById('projectForm').style.display = 'none';
+    document.getElementById('projectAddBtn').style.display = '';
+    document.getElementById('newProjectName').value = '';
+}
+
+async function createProject() {
+    const name = document.getElementById('newProjectName').value.trim();
+    if (!name) return;
+    try {
+        const resp = await fetch('/projects', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const proj = await resp.json();
+        projects.push(proj);
+        hideProjectForm();
+        selectProject(proj.id);
+    } catch (e) { showError('Failed to create project: ' + e.message); }
+}
+
+async function deleteProject(id) {
+    await fetch('/projects/' + id, { method: 'DELETE' });
+    projects = projects.filter(p => p.id !== id);
+    if (activeProjectId === id) activeProjectId = '';
+    renderProjects();
+    renderFilteredJobs();
+}
+
 // ── Podcasts ──────────────────────────────────────────────────────────────────
 let pollingTimers = {};
 
@@ -861,7 +974,8 @@ async function pollJob(jobId) {
         if (job.status !== 'generating') {
             clearInterval(pollingTimers[jobId]);
             delete pollingTimers[jobId];
-            // Replace the item
+            const idx = allJobs.findIndex(j => j.id === jobId);
+            if (idx !== -1) allJobs[idx] = job;
             const existing = document.querySelector(`[data-job-id="${jobId}"]`);
             if (existing) existing.replaceWith(makePodcastItem(job));
             document.getElementById('podcastEmpty').style.display = 'none';
@@ -874,6 +988,7 @@ async function deleteJob(jobId) {
     clearInterval(pollingTimers[jobId]);
     delete pollingTimers[jobId];
     await fetch('/jobs/' + jobId, { method: 'DELETE' });
+    allJobs = allJobs.filter(j => j.id !== jobId);
     const el = document.querySelector(`[data-job-id="${jobId}"]`);
     if (el) el.remove();
     if (!document.querySelectorAll('.podcast-item').length) {
@@ -934,6 +1049,8 @@ async function saveEdit(jobId) {
         });
         if (!resp.ok) throw new Error(await resp.text());
         const updated = await resp.json();
+        const idx = allJobs.findIndex(j => j.id === jobId);
+        if (idx !== -1) allJobs[idx] = updated;
         el.replaceWith(makePodcastItem(updated));
     } catch (e) { showError('Failed to save: ' + e.message); }
 }
@@ -1068,6 +1185,7 @@ async function generate() {
 
     const instructions = document.getElementById('instructions').value.trim();
     if (instructions) body.user_instructions = instructions;
+    if (activeProjectId) body.project_id = activeProjectId;
 
     hideError();
     document.getElementById('btnGenerate').disabled = true;
@@ -1084,12 +1202,10 @@ async function generate() {
         }
         const { job_id } = await resp.json();
 
-        // Add generating item to top of list
-        const list  = document.getElementById('podcastList');
-        const empty = document.getElementById('podcastEmpty');
-        const item  = makePodcastItem({ id: job_id, status: 'generating', created_at: new Date().toISOString() });
-        list.insertBefore(item, list.firstChild);
-        empty.style.display = 'none';
+        // Track in allJobs and re-render
+        const newJob = { id: job_id, status: 'generating', created_at: new Date().toISOString(), project_id: activeProjectId };
+        allJobs.unshift(newJob);
+        renderFilteredJobs();
 
         // Button stays disabled while generating; pollJob re-enables it on completion
 
@@ -1155,18 +1271,22 @@ function updateLlmMeta() {
 }
 
 async function init() {
-    const [resResp, filesResp, jobsResp] = await Promise.all([
+    const [resResp, filesResp, jobsResp, projResp] = await Promise.all([
         fetch('/resources').then(r => r.json()).catch(() => ({ urls: [], texts: [] })),
         fetch('/files').then(r => r.json()).catch(() => ({ files: [] })),
         fetch('/jobs').then(r => r.json()).catch(() => ({ jobs: [] })),
+        fetch('/projects').then(r => r.json()).catch(() => ({ projects: [] })),
     ]);
     savedUrls  = resResp.urls  || [];
     savedTexts = resResp.texts || [];
     savedFiles = filesResp.files || [];
+    projects   = projResp.projects || [];
+    allJobs    = jobsResp.jobs || [];
     renderUrls();
     renderFiles();
     renderTexts();
-    renderJobs(jobsResp.jobs || []);
+    renderProjects();
+    renderFilteredJobs();
 }
 
 applyPinnedPrefs();
