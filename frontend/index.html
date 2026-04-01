@@ -196,6 +196,27 @@
         }
         .podcast-header:last-child { margin-bottom: 0; }
 
+        .podcast-desc {
+            font-size: 0.82rem; color: #777; margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+        .podcast-meta-row {
+            display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;
+            font-size: 0.75rem; color: #555;
+        }
+
+        /* Inline edit form */
+        .podcast-edit-form { margin-bottom: 0.5rem; }
+        .podcast-edit-form input,
+        .podcast-edit-form textarea {
+            width: 100%; margin-bottom: 0.4rem;
+            background: #1a1a1a; border: 1px solid #333; border-radius: 6px;
+            padding: 0.45rem 0.6rem; color: #e0e0e0; font-size: 0.85rem;
+            font-family: inherit; outline: none;
+        }
+        .podcast-edit-form textarea { resize: vertical; min-height: 50px; }
+        .podcast-edit-actions { display: flex; gap: 0.4rem; }
+
         .podcast-title {
             flex: 1; font-size: 0.85rem; color: #bbb;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -798,14 +819,21 @@ function makePodcastItem(job) {
         }
     } else if (job.status === 'done') {
         const audioUrl = `/audio/${job.id}`;
+        const desc = job.description ? `<div class="podcast-desc">${escHtml(job.description)}</div>` : '';
+        const shareToken = job.share_token || '';
         el.innerHTML = `
             <div class="podcast-header">
                 <span class="podcast-title" title="${escHtml(job.title)}">${escHtml(job.title)}</span>
-                <span class="podcast-date">${formatDate(job.completed_at || job.created_at)}</span>
                 <div class="podcast-actions">
+                    ${shareToken ? `<button class="btn-sm" onclick="shareJob('${shareToken}',this)">Share</button>` : ''}
+                    <button class="btn-sm" onclick="editJob('${job.id}')">Edit</button>
                     <a class="btn-sm" href="${audioUrl}" download="${job.id}.mp3">Download</a>
                     <button class="btn-sm danger" onclick="deleteJob('${job.id}')">Delete</button>
                 </div>
+            </div>
+            ${desc}
+            <div class="podcast-meta-row">
+                <span>${formatDate(job.completed_at || job.created_at)}</span>
             </div>
             <audio controls src="${audioUrl}" preload="metadata"></audio>
         `;
@@ -850,6 +878,63 @@ async function deleteJob(jobId) {
     if (!document.querySelectorAll('.podcast-item').length) {
         document.getElementById('podcastEmpty').style.display = '';
     }
+}
+
+// ── Share & Edit ─────────────────────────────────────────────────────────────
+function shareJob(token, btn) {
+    const url = `${location.origin}/public/audio/${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+        const prev = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = prev, 1500);
+    }).catch(() => {
+        prompt('Share link:', url);
+    });
+}
+
+function editJob(jobId) {
+    const el = document.querySelector(`[data-job-id="${jobId}"]`);
+    if (!el) return;
+    // Find current values from the rendered DOM
+    const titleEl = el.querySelector('.podcast-title');
+    const descEl = el.querySelector('.podcast-desc');
+    const currentTitle = titleEl ? titleEl.textContent : '';
+    const currentDesc = descEl ? descEl.textContent : '';
+
+    // Insert edit form after the header
+    const existing = el.querySelector('.podcast-edit-form');
+    if (existing) { existing.remove(); return; } // toggle off
+
+    const form = document.createElement('div');
+    form.className = 'podcast-edit-form';
+    form.innerHTML = `
+        <input type="text" class="edit-title" value="${escHtml(currentTitle)}" placeholder="Episode title">
+        <textarea class="edit-desc" placeholder="Short description">${escHtml(currentDesc)}</textarea>
+        <div class="podcast-edit-actions">
+            <button class="btn-sm" onclick="saveEdit('${jobId}')">Save</button>
+            <button class="btn-sm" onclick="this.closest('.podcast-edit-form').remove()">Cancel</button>
+        </div>
+    `;
+    const header = el.querySelector('.podcast-header');
+    header.after(form);
+}
+
+async function saveEdit(jobId) {
+    const el = document.querySelector(`[data-job-id="${jobId}"]`);
+    const form = el.querySelector('.podcast-edit-form');
+    const title = form.querySelector('.edit-title').value.trim();
+    const description = form.querySelector('.edit-desc').value.trim();
+
+    try {
+        const resp = await fetch(`/jobs/${jobId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, description }),
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const updated = await resp.json();
+        el.replaceWith(makePodcastItem(updated));
+    } catch (e) { showError('Failed to save: ' + e.message); }
 }
 
 // ── Generate ──────────────────────────────────────────────────────────────────
