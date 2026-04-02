@@ -255,7 +255,7 @@ if AUTHENTIK_CLIENT_ID and AUTHENTIK_CLIENT_SECRET and AUTHENTIK_SLUG and AUTHEN
     )
 
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".png", ".jpg", ".jpeg", ".webp", ".gif"}
-MAX_FILE_SIZE = 20 * 1024 * 1024
+MAX_FILE_SIZE = 120 * 1024 * 1024
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 
@@ -694,7 +694,7 @@ async def upload_files(request: Request, files: List[UploadFile] = File(...)):
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
         content = await f.read()
         if len(content) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail=f"File too large: {f.filename} (max 20 MB)")
+            raise HTTPException(status_code=400, detail=f"File too large: {f.filename} (max 120 MB)")
         file_id   = uuid.uuid4().hex[:12]
         safe_name = f"{file_id}{ext}"
         dest      = os.path.join(upload_dir, safe_name)

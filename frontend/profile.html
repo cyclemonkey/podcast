@@ -376,7 +376,7 @@
             <h2>My Files</h2>
             <div class="drop-zone" id="dropZone">
                 <div class="drop-zone-text"><strong>Drop files here</strong> or click to browse</div>
-                <div class="drop-zone-hint">PDF, TXT, PNG, JPG, WEBP, GIF (max 20 MB each)</div>
+                <div class="drop-zone-hint">PDF, TXT, PNG, JPG, WEBP, GIF (max 120 MB each)</div>
                 <input type="file" id="fileInput" multiple accept=".pdf,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none">
             </div>
             <div class="file-list" id="fileList">
@@ -573,11 +573,17 @@
 
         async function handleFiles(fileList) {
             if (!fileList.length) return;
+            const WARN_SIZE = 60 * 1024 * 1024;
+            const largeFiles = [...fileList].filter(f => f.size > WARN_SIZE);
+            if (largeFiles.length) {
+                const names = largeFiles.map(f => `${f.name} (${(f.size / 1048576).toFixed(1)} MB)`).join('\n');
+                if (!confirm(`These files are over 60 MB:\n\n${names}\n\nContinue uploading?`)) return;
+            }
             const formData = new FormData();
             for (const f of fileList) formData.append('files', f);
 
             const tempItems = [];
-            for (const f of fileList) tempItems.push(addFileItem(f.name, f.size, null, true));
+            for (const f of fileList) tempItems.push(addFileItem(f.name, f.size, null, true, false));
 
             try {
                 const resp = await fetch('/upload', { method: 'POST', body: formData });
@@ -587,7 +593,7 @@
                 }
                 const data = await resp.json();
                 tempItems.forEach(el => el.remove());
-                for (const f of data.files) addFileItem(f.name, f.size, f.id, false);
+                for (const f of data.files) addFileItem(f.name, f.size, f.id, false, false);
                 showToast(`${data.files.length} file(s) uploaded.`);
             } catch (e) {
                 tempItems.forEach(el => el.remove());
