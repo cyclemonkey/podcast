@@ -463,13 +463,15 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
                 image_paths.append(fpath)
 
         # Truncate text to avoid exceeding LLM token limits (~4 chars per token).
-        # gpt-4o-mini has 128k context but 200k TPM rate limit; Gemini 2.5 Flash
-        # has 1M context.  Use a conservative 400k char limit (~100k tokens) to
-        # leave room for the system prompt and output.
-        MAX_INPUT_CHARS = 400_000
-        if text_input and len(text_input) > MAX_INPUT_CHARS:
-            text_input = text_input[:MAX_INPUT_CHARS]
-            logger.warning("Job %s: text input truncated to %d chars", job_id, MAX_INPUT_CHARS)
+        # OpenAI gpt-4o-mini: 128k context, 200k TPM → keep under ~100k chars.
+        # Gemini 2.5 Flash: 1M context → 400k chars is safe.
+        if "openai" in (gen_data.get("llm_model") or "").lower():
+            max_input_chars = 100_000
+        else:
+            max_input_chars = 400_000
+        if text_input and len(text_input) > max_input_chars:
+            text_input = text_input[:max_input_chars]
+            logger.warning("Job %s: text input truncated to %d chars", job_id, max_input_chars)
 
         gen_kwargs: dict = dict(
             conversation_config=conversation_config,
@@ -817,7 +819,17 @@ async def generate_podcast_endpoint(request: Request, data: dict):
     if urls:
         title = urls[0][:80]
     elif file_ids:
-        title = f"{len(file_ids)} file(s)"
+        # Resolve actual file names from metadata
+        upload_dir = _user_upload_dir(username)
+        names = []
+        for fid in file_ids:
+            meta_path = os.path.join(upload_dir, Path(fid).name) + ".meta"
+            try:
+                with open(meta_path) as mf:
+                    names.append(json.load(mf).get("name", fid))
+            except (FileNotFoundError, json.JSONDecodeError):
+                names.append(fid)
+        title = ", ".join(names)[:80]
     elif text:
         title = text[:80].replace("\n", " ")
     else:
