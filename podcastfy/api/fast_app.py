@@ -353,6 +353,35 @@ async def startup_cleanup():
 
 # ── Background generation ─────────────────────────────────────────────────────
 
+def _friendly_error(exc: Exception) -> str:
+    """Convert raw API/library exceptions into short, user-readable messages."""
+    msg = str(exc)
+    low = msg.lower()
+
+    # Rate limits
+    if "rate" in low and "limit" in low:
+        if "too large" in low or "requested" in low:
+            return "The content is too large for the selected AI model. Try using fewer or smaller sources, or switch to Gemini which supports larger inputs."
+        return "Rate limit reached. Please wait a minute and try again."
+
+    # Quota / billing
+    if "quota" in low or "exceeded" in low or "billing" in low:
+        return "API quota exceeded. Please wait a few minutes and try again, or ask an admin to check the API plan."
+
+    # Auth / key errors
+    if "invalid" in low and ("key" in low or "api" in low or "auth" in low):
+        return "Invalid API key. Ask an admin to check the API key configuration."
+
+    # Timeout
+    if "timeout" in low or "timed out" in low:
+        return "The request timed out. Try with less content or try again later."
+
+    # Keep short messages as-is, truncate very long ones
+    if len(msg) > 200:
+        return msg[:200] + "…"
+    return msg
+
+
 def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
     """Blocking generation — runs in thread pool executor."""
     try:
@@ -433,6 +462,15 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
             elif ext in {".png", ".jpg", ".jpeg", ".webp", ".gif"}:
                 image_paths.append(fpath)
 
+        # Truncate text to avoid exceeding LLM token limits (~4 chars per token).
+        # gpt-4o-mini has 128k context but 200k TPM rate limit; Gemini 2.5 Flash
+        # has 1M context.  Use a conservative 400k char limit (~100k tokens) to
+        # leave room for the system prompt and output.
+        MAX_INPUT_CHARS = 400_000
+        if text_input and len(text_input) > MAX_INPUT_CHARS:
+            text_input = text_input[:MAX_INPUT_CHARS]
+            logger.warning("Job %s: text input truncated to %d chars", job_id, MAX_INPUT_CHARS)
+
         gen_kwargs: dict = dict(
             conversation_config=conversation_config,
             tts_model=tts_model,
@@ -478,7 +516,7 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
         logger.exception("Job %s failed for %s: %s", job_id, username, e)
         _update_job(username, job_id, {
             "status":       "failed",
-            "error":        str(e),
+            "error":        _friendly_error(e),
             "completed_at": datetime.now(timezone.utc).isoformat(),
         })
 
