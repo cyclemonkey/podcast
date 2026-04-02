@@ -39,13 +39,16 @@ AUTHENTIK_SLUG          = os.getenv("AUTHENTIK_SLUG", "")
 APP_URL                 = os.getenv("APP_URL", "").rstrip("/")
 SESSION_SECRET          = os.getenv("SESSION_SECRET", "change-me-in-production")
 
-GEMINI_LLM_MODEL = os.getenv("GEMINI_LLM_MODEL", "gemini-2.5-flash")
-OPENAI_LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
+GEMINI_LLM_MODEL   = os.getenv("GEMINI_LLM_MODEL", "gemini-2.5-flash")
+OPENAI_LLM_MODEL   = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
+DEEPSEEK_LLM_MODEL = os.getenv("DEEPSEEK_LLM_MODEL", "deepseek-chat")
+DEEPSEEK_API_KEY   = os.getenv("DEEPSEEK_API_KEY", "")
 
 LLM_MODEL_MAP = {
-    "google": GEMINI_LLM_MODEL,
-    "gemini": GEMINI_LLM_MODEL,
-    "openai": OPENAI_LLM_MODEL,
+    "google":   GEMINI_LLM_MODEL,
+    "gemini":   GEMINI_LLM_MODEL,
+    "openai":   OPENAI_LLM_MODEL,
+    "deepseek": DEEPSEEK_LLM_MODEL,
 }
 
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -76,7 +79,12 @@ def merge_configs(base_config: dict, user_config: dict) -> dict:
 def _resolve_llm(alias: str) -> tuple:
     alias = (alias or "google").lower()
     model_name = LLM_MODEL_MAP.get(alias, LLM_MODEL_MAP["google"])
-    api_key_label = "OPENAI_API_KEY" if "gpt" in model_name else "GEMINI_API_KEY"
+    if "deepseek" in model_name:
+        api_key_label = "DEEPSEEK_API_KEY"
+    elif "gpt" in model_name:
+        api_key_label = "OPENAI_API_KEY"
+    else:
+        api_key_label = "GEMINI_API_KEY"
     return model_name, api_key_label
 
 
@@ -398,12 +406,15 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
         gemini_key     = (admin_keys.get("gemini_key")     or GEMINI_API_KEY).strip()
         openai_key     = (admin_keys.get("openai_key")     or OPENAI_API_KEY).strip()
         elevenlabs_key = (admin_keys.get("elevenlabs_key") or ELEVENLABS_API_KEY).strip()
+        deepseek_key   = (admin_keys.get("deepseek_key")   or DEEPSEEK_API_KEY).strip()
 
         # Pre-flight: verify the required LLM key is present
         if api_key_label == "GEMINI_API_KEY" and not gemini_key:
             raise ValueError("Gemini LLM selected but no Gemini API key is set. Ask an admin to configure API keys.")
         if api_key_label == "OPENAI_API_KEY" and not openai_key:
             raise ValueError("OpenAI LLM selected but no OpenAI API key is set. Ask an admin to configure API keys.")
+        if api_key_label == "DEEPSEEK_API_KEY" and not deepseek_key:
+            raise ValueError("DeepSeek LLM selected but no DeepSeek API key is set. Ask an admin to configure API keys.")
         if tts_model in ("openai",) and not openai_key:
             raise ValueError("OpenAI TTS selected but no OpenAI API key is set. Ask an admin to configure API keys.")
         if tts_model in ("elevenlabs",) and not elevenlabs_key:
@@ -412,6 +423,7 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
         if gemini_key:     os.environ["GEMINI_API_KEY"]     = gemini_key
         if openai_key:     os.environ["OPENAI_API_KEY"]     = openai_key
         if elevenlabs_key: os.environ["ELEVENLABS_API_KEY"] = elevenlabs_key
+        if deepseek_key:   os.environ["DEEPSEEK_API_KEY"]   = deepseek_key
 
         # Episode length → word count instruction
         LENGTH_WORDS = {"5": 650, "10": 1300, "15": 1950, "20": 2600, "30": 3900}
@@ -419,7 +431,13 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
         target_words = LENGTH_WORDS.get(episode_mins, 1300)
         base_instructions = gen_data.get("user_instructions", base_config.get("user_instructions", ""))
         length_instruction = f"Target approximately {target_words} words total in the conversation (about {episode_mins} minutes of audio)."
-        combined_instructions = f"{length_instruction} {base_instructions}".strip()
+        # Inject selected topics as focus areas
+        topics = gen_data.get("topics", [])
+        topic_instruction = ""
+        if topics:
+            topic_list = "; ".join(t if isinstance(t, str) else t.get("title", "") for t in topics)
+            topic_instruction = f"Focus the episode on these topics: {topic_list}."
+        combined_instructions = f"{length_instruction} {topic_instruction} {base_instructions}".strip()
 
         user_config = {
             "creativity":           float(gen_data.get("creativity", base_config.get("creativity", 0.7))),
@@ -464,8 +482,12 @@ def _do_generate_sync(username: str, job_id: str, gen_data: dict) -> None:
 
         # Truncate text to avoid exceeding LLM token limits (~4 chars per token).
         # OpenAI gpt-4o-mini: 128k context, 200k TPM → keep under ~100k chars.
+        # DeepSeek: 64k context → keep under ~50k chars.
         # Gemini 2.5 Flash: 1M context → 400k chars is safe.
-        if "openai" in (gen_data.get("llm_model") or "").lower():
+        llm_alias = (gen_data.get("llm_model") or "").lower()
+        if "deepseek" in llm_alias:
+            max_input_chars = 50_000
+        elif "openai" in llm_alias:
             max_input_chars = 100_000
         else:
             max_input_chars = 400_000
@@ -637,9 +659,11 @@ async def get_profile(request: Request):
         "gemini_key":         admin_keys.get("gemini_key", ""),
         "openai_key":         admin_keys.get("openai_key", ""),
         "elevenlabs_key":     admin_keys.get("elevenlabs_key", ""),
+        "deepseek_key":       admin_keys.get("deepseek_key", ""),
         "gemini_key_set":     bool(admin_keys.get("gemini_key")),
         "openai_key_set":     bool(admin_keys.get("openai_key")),
         "elevenlabs_key_set": bool(admin_keys.get("elevenlabs_key")),
+        "deepseek_key_set":   bool(admin_keys.get("deepseek_key")),
     }
 
 
@@ -648,7 +672,7 @@ async def save_profile(request: Request, data: dict):
     if not _is_admin(request):
         raise HTTPException(status_code=403, detail="Admin access required")
     admin_keys = _load_admin_keys()
-    for field in ("gemini_key", "openai_key", "elevenlabs_key"):
+    for field in ("gemini_key", "openai_key", "elevenlabs_key", "deepseek_key"):
         if field in data:
             val = str(data[field]).strip()
             if val:
@@ -806,6 +830,166 @@ async def delete_uploaded_file(file_id: str, request: Request):
     return {"deleted": safe}
 
 
+# ── Topic routes ─────────────────────────────────────────────────────────────
+
+def _load_topics(username: str) -> list:
+    path = os.path.join(_user_dir(username), "topics.json")
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def _save_topics(username: str, topics: list) -> None:
+    path = os.path.join(_user_dir(username), "topics.json")
+    with open(path, "w") as f:
+        json.dump(topics, f)
+
+
+@app.get("/topics")
+async def list_topics(request: Request):
+    username = _session_user(request) or "anonymous"
+    return {"topics": _load_topics(username)}
+
+
+@app.delete("/topics/{topic_id}")
+async def delete_topic(topic_id: str, request: Request):
+    username = _session_user(request) or "anonymous"
+    topics = _load_topics(username)
+    _save_topics(username, [t for t in topics if t["id"] != topic_id])
+    return {"deleted": topic_id}
+
+
+@app.post("/suggest-topics")
+async def suggest_topics(request: Request, data: dict):
+    """Use the LLM to suggest podcast episode topics based on selected content."""
+    username = _session_user(request) or "anonymous"
+
+    urls     = data.get("urls", [])
+    file_ids = data.get("file_ids", [])
+    text     = data.get("text", "")
+    llm_alias = data.get("llm_model", "gemini")
+
+    # Extract content from sources
+    from ..content_parser.content_extractor import ContentExtractor
+    extractor = ContentExtractor()
+
+    upload_dir = _user_upload_dir(username)
+    content_parts = []
+
+    for url in urls:
+        try:
+            content_parts.append(extractor.extract_content(url))
+        except Exception as e:
+            logger.warning("Failed to extract %s: %s", url, e)
+
+    for fid in file_ids:
+        safe = Path(fid).name
+        fpath = os.path.join(upload_dir, safe)
+        if not os.path.isfile(fpath):
+            continue
+        ext = Path(fpath).suffix.lower()
+        if ext == ".pdf":
+            try:
+                content_parts.append(extractor.extract_content(fpath))
+            except Exception as e:
+                logger.warning("Failed to extract %s: %s", fid, e)
+        elif ext == ".txt":
+            content_parts.append(Path(fpath).read_text(errors="replace"))
+
+    if text.strip():
+        content_parts.append(text.strip())
+
+    combined = "\n\n".join(content_parts)
+    if not combined.strip():
+        raise HTTPException(status_code=400, detail="No content could be extracted from the selected sources.")
+
+    # Truncate for the topic suggestion call
+    combined = combined[:50_000]
+
+    # Use the LLM to generate topic suggestions
+    llm_model_name, api_key_label = _resolve_llm(llm_alias)
+    admin_keys = _load_admin_keys()
+    gemini_key   = (admin_keys.get("gemini_key")   or GEMINI_API_KEY).strip()
+    openai_key   = (admin_keys.get("openai_key")   or OPENAI_API_KEY).strip()
+    deepseek_key = (admin_keys.get("deepseek_key") or DEEPSEEK_API_KEY).strip()
+
+    if api_key_label == "GEMINI_API_KEY" and gemini_key:
+        os.environ["GEMINI_API_KEY"] = gemini_key
+    if api_key_label == "OPENAI_API_KEY" and openai_key:
+        os.environ["OPENAI_API_KEY"] = openai_key
+    if api_key_label == "DEEPSEEK_API_KEY" and deepseek_key:
+        os.environ["DEEPSEEK_API_KEY"] = deepseek_key
+
+    prompt = (
+        "Based on the following content, suggest 8 specific and interesting podcast episode topics. "
+        "Each topic should be a focused angle or theme that could make a compelling episode. "
+        "Return ONLY a JSON array of objects, each with 'title' (short topic title, max 80 chars) "
+        "and 'description' (1-2 sentence description of the episode angle). "
+        "No markdown, no extra text — just the JSON array.\n\n"
+        f"CONTENT:\n{combined}"
+    )
+
+    try:
+        from ..content_generator import LLMBackend
+        backend = LLMBackend(
+            is_local=False,
+            temperature=0.9,
+            max_output_tokens=2048,
+            model_name=llm_model_name,
+            api_key_label=api_key_label,
+        )
+        response = backend.llm.invoke(prompt)
+        raw = response.content if hasattr(response, "content") else str(response)
+
+        # Parse JSON from response (handle markdown code fences)
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+
+        import re as _re
+        # Find JSON array in the response
+        match = _re.search(r'\[.*\]', raw, _re.DOTALL)
+        if match:
+            topics = json.loads(match.group())
+        else:
+            topics = json.loads(raw)
+
+        # Validate and normalize
+        result = []
+        for t in topics[:10]:
+            if isinstance(t, dict) and "title" in t:
+                result.append({
+                    "title": str(t["title"])[:80],
+                    "description": str(t.get("description", ""))[:200],
+                })
+        return {"topics": result}
+
+    except Exception as e:
+        logger.exception("Topic suggestion failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to generate topic suggestions: {_friendly_error(e)}")
+
+
+@app.post("/topics")
+async def save_topic(request: Request, data: dict):
+    """Save a topic for later use."""
+    username = _session_user(request) or "anonymous"
+    title = data.get("title", "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Topic title required")
+    topics = _load_topics(username)
+    entry = {
+        "id":          uuid.uuid4().hex[:12],
+        "title":       title,
+        "description": data.get("description", "").strip(),
+        "added_at":    datetime.now(timezone.utc).isoformat(),
+    }
+    topics.append(entry)
+    _save_topics(username, topics)
+    return entry
+
+
 # ── Generation routes ─────────────────────────────────────────────────────────
 
 @app.post("/generate")
@@ -851,6 +1035,7 @@ async def generate_podcast_endpoint(request: Request, data: dict):
         "tagline":     data.get("tagline"),
         "conversation_style":    data.get("conversation_style"),
         "engagement_techniques": data.get("engagement_techniques"),
+        "topics":      data.get("topics"),
     }
 
     jobs = _load_jobs(username)

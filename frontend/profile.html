@@ -366,6 +366,14 @@
                     <span class="key-status unset" id="statusElevenLabs">Not set</span>
                 </div>
             </div>
+            <div class="field">
+                <label>DeepSeek API Key</label>
+                <div class="key-row">
+                    <input type="password" id="keyDeepSeek" placeholder="sk-...">
+                    <button class="btn-eye" type="button" onclick="toggleKey('keyDeepSeek', this)" title="Show/hide">&#128065;</button>
+                    <span class="key-status unset" id="statusDeepSeek">Not set</span>
+                </div>
+            </div>
             <div class="btn-row">
                 <button class="btn btn-primary" onclick="saveApiKeys()">Save keys</button>
             </div>
@@ -445,9 +453,11 @@
                 if (p.gemini_key)     document.getElementById('keyGemini').value     = p.gemini_key;
                 if (p.openai_key)     document.getElementById('keyOpenAI').value     = p.openai_key;
                 if (p.elevenlabs_key) document.getElementById('keyElevenLabs').value = p.elevenlabs_key;
+                if (p.deepseek_key)   document.getElementById('keyDeepSeek').value   = p.deepseek_key;
                 _setKeyStatus('statusGemini',     p.gemini_key_set);
                 _setKeyStatus('statusOpenAI',     p.openai_key_set);
                 _setKeyStatus('statusElevenLabs', p.elevenlabs_key_set);
+                _setKeyStatus('statusDeepSeek',   p.deepseek_key_set);
             } catch (e) {}
         }
 
@@ -456,6 +466,7 @@
                 gemini_key:     document.getElementById('keyGemini').value.trim(),
                 openai_key:     document.getElementById('keyOpenAI').value.trim(),
                 elevenlabs_key: document.getElementById('keyElevenLabs').value.trim(),
+                deepseek_key:   document.getElementById('keyDeepSeek').value.trim(),
             };
             try {
                 const resp = await fetch('/profile', {

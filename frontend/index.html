@@ -289,6 +289,29 @@
             border-radius: 16px;
         }
 
+        /* Topic items */
+        .topic-item {
+            display: flex; align-items: flex-start; gap: 0.6rem;
+            background: #111; border: 1px solid #2a2a2a; border-radius: 8px;
+            padding: 0.6rem 0.75rem; font-size: 0.85rem;
+        }
+        .topic-item input[type="checkbox"] {
+            width: 16px; height: 16px; flex-shrink: 0; cursor: pointer;
+            accent-color: #fff; padding: 0; border: none; background: none;
+            margin-top: 2px;
+        }
+        .topic-content { flex: 1; min-width: 0; }
+        .topic-title { color: #ccc; font-weight: 500; }
+        .topic-desc { color: #666; font-size: 0.78rem; margin-top: 0.15rem; line-height: 1.3; }
+        .topic-actions { display: flex; gap: 0.3rem; flex-shrink: 0; }
+        .topic-btn {
+            background: none; border: 1px solid #333; border-radius: 6px;
+            color: #666; font-size: 0.72rem; padding: 0.2rem 0.5rem;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .topic-btn:hover { border-color: #555; color: #ccc; }
+        .topic-btn.danger:hover { border-color: #c0392b; color: #e74c3c; }
+
         /* Responsive */
         @media (max-width: 500px) { .row, .row-3 { grid-template-columns: 1fr; } }
     </style>
@@ -366,6 +389,23 @@
         </div>
     </div>
 
+    <!-- Topics -->
+    <div class="card">
+        <h2>Topics</h2>
+        <p style="font-size:0.8rem;color:#555;margin-bottom:0.75rem">AI-suggested episode focus areas based on your selected sources. Check topics to include them.</p>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+            <button class="btn-add" id="btnSuggestTopics" onclick="suggestTopics()">Suggest Topics</button>
+            <span id="topicSpinner" style="display:none"><span class="spinner" style="display:inline-block;vertical-align:middle"></span> <span style="font-size:0.8rem;color:#666">Analyzing sources...</span></span>
+        </div>
+        <div class="resource-list" id="suggestedTopicList"></div>
+        <div style="margin-top:0.75rem;border-top:1px solid #222;padding-top:0.75rem" id="savedTopicsSection" style="display:none">
+            <label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#555;margin-bottom:0.5rem">Saved Topics</label>
+            <div class="resource-list" id="savedTopicList">
+                <div class="resource-empty" id="savedTopicEmpty">No saved topics yet. Suggest topics and save the ones you like.</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Options -->
     <div class="card">
         <h2>Options</h2>
@@ -396,6 +436,7 @@
                     <select id="llmModel" onchange="updateLlmMeta();syncSaveIcon('llmModel')">
                         <option value="gemini">Gemini</option>
                         <option value="openai">OpenAI</option>
+                        <option value="deepseek">DeepSeek</option>
                     </select>
                     <button class="pin-btn" id="llmModel-pin" title="Save as default" onclick="togglePin('llmModel')">
                         <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/></svg>
@@ -1176,9 +1217,156 @@ async function loadSnapshot(jobId) {
             });
         }
 
+        // Restore topics from snapshot
+        if (s.topics && s.topics.length) {
+            renderSuggestedTopics(s.topics);
+        }
+
         // Scroll to top so the user sees the loaded form
         window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) { showError('Failed to load episode settings: ' + e.message); }
+}
+
+// ── Topics ───────────────────────────────────────────────────────────────────
+let savedTopics = [];
+let suggestedTopics = [];
+
+function renderSavedTopics() {
+    const list  = document.getElementById('savedTopicList');
+    const empty = document.getElementById('savedTopicEmpty');
+    list.querySelectorAll('.topic-item').forEach(el => el.remove());
+    empty.style.display = savedTopics.length ? 'none' : '';
+    savedTopics.forEach(t => list.insertBefore(makeSavedTopicItem(t), empty));
+}
+
+function makeSavedTopicItem(t) {
+    const el = document.createElement('div');
+    el.className = 'topic-item';
+    el.dataset.topicId = t.id;
+    el.innerHTML = `
+        <input type="checkbox" class="topic-check">
+        <div class="topic-content">
+            <div class="topic-title">${escHtml(t.title)}</div>
+            ${t.description ? `<div class="topic-desc">${escHtml(t.description)}</div>` : ''}
+        </div>
+        <div class="topic-actions">
+            <button class="topic-btn danger" onclick="deleteSavedTopic('${t.id}')" title="Remove">&times;</button>
+        </div>
+    `;
+    return el;
+}
+
+function renderSuggestedTopics(topics) {
+    suggestedTopics = topics;
+    const list = document.getElementById('suggestedTopicList');
+    list.innerHTML = '';
+    if (!topics.length) return;
+    topics.forEach((t, i) => {
+        const el = document.createElement('div');
+        el.className = 'topic-item';
+        el.dataset.idx = i;
+        el.innerHTML = `
+            <input type="checkbox" class="topic-check" checked>
+            <div class="topic-content">
+                <div class="topic-title">${escHtml(t.title)}</div>
+                ${t.description ? `<div class="topic-desc">${escHtml(t.description)}</div>` : ''}
+            </div>
+            <div class="topic-actions">
+                <button class="topic-btn" onclick="saveSuggestedTopic(${i})" title="Save for later">Save</button>
+            </div>
+        `;
+        list.appendChild(el);
+    });
+}
+
+async function suggestTopics() {
+    const checkedUrls  = [...document.querySelectorAll('#urlList  .resource-item')]
+        .filter(el => el.querySelector('input[type=checkbox]')?.checked)
+        .map(el => savedUrls.find(u => u.id === el.dataset.id)?.url).filter(Boolean);
+
+    const checkedFiles = [...document.querySelectorAll('#fileList .resource-item')]
+        .filter(el => el.querySelector('input[type=checkbox]')?.checked)
+        .map(el => el.dataset.id).filter(Boolean);
+
+    const checkedTexts = [...document.querySelectorAll('#textList .resource-item')]
+        .filter(el => el.querySelector('input[type=checkbox]')?.checked)
+        .map(el => savedTexts.find(t => t.id === el.dataset.id)?.content).filter(Boolean);
+
+    if (!checkedUrls.length && !checkedFiles.length && !checkedTexts.length) {
+        showError('Select at least one source to suggest topics from.');
+        return;
+    }
+
+    document.getElementById('btnSuggestTopics').style.display = 'none';
+    document.getElementById('topicSpinner').style.display = '';
+
+    try {
+        const resp = await fetch('/suggest-topics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                urls: checkedUrls,
+                file_ids: checkedFiles,
+                text: checkedTexts.join('\n\n---\n\n'),
+                llm_model: document.getElementById('llmModel').value,
+            }),
+        });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+            throw new Error(err.detail || 'Failed to suggest topics');
+        }
+        const data = await resp.json();
+        renderSuggestedTopics(data.topics || []);
+    } catch (e) {
+        showError(e.message);
+    } finally {
+        document.getElementById('btnSuggestTopics').style.display = '';
+        document.getElementById('topicSpinner').style.display = 'none';
+    }
+}
+
+async function saveSuggestedTopic(idx) {
+    const t = suggestedTopics[idx];
+    if (!t) return;
+    try {
+        const resp = await fetch('/topics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: t.title, description: t.description }),
+        });
+        if (!resp.ok) throw new Error('Failed to save topic');
+        const saved = await resp.json();
+        savedTopics.push(saved);
+        renderSavedTopics();
+        // Update save button to show saved
+        const btn = document.querySelector(`#suggestedTopicList .topic-item[data-idx="${idx}"] .topic-btn`);
+        if (btn) { btn.textContent = 'Saved'; btn.disabled = true; btn.style.color = '#2ecc71'; btn.style.borderColor = '#2ecc71'; }
+    } catch (e) { showError(e.message); }
+}
+
+async function deleteSavedTopic(id) {
+    await fetch('/topics/' + id, { method: 'DELETE' });
+    savedTopics = savedTopics.filter(t => t.id !== id);
+    renderSavedTopics();
+}
+
+function getSelectedTopics() {
+    const topics = [];
+    // From suggested topics (checked)
+    document.querySelectorAll('#suggestedTopicList .topic-item').forEach(el => {
+        if (el.querySelector('.topic-check')?.checked) {
+            const idx = parseInt(el.dataset.idx);
+            if (suggestedTopics[idx]) topics.push(suggestedTopics[idx]);
+        }
+    });
+    // From saved topics (checked)
+    document.querySelectorAll('#savedTopicList .topic-item').forEach(el => {
+        if (el.querySelector('.topic-check')?.checked) {
+            const t = savedTopics.find(t => t.id === el.dataset.topicId);
+            if (t) topics.push({ title: t.title, description: t.description });
+        }
+    });
+    return topics;
 }
 
 // ── Generate ──────────────────────────────────────────────────────────────────
@@ -1231,6 +1419,9 @@ async function generate() {
     const instructions = document.getElementById('instructions').value.trim();
     if (instructions) body.user_instructions = instructions;
     if (activeProjectId) body.project_id = activeProjectId;
+
+    const selectedTopics = getSelectedTopics();
+    if (selectedTopics.length) body.topics = selectedTopics;
 
     hideError();
     document.getElementById('btnGenerate').disabled = true;
@@ -1293,8 +1484,9 @@ const TTS_META = {
     elevenlabs:  { model: 'eleven_multilingual_v2',   cost: '$$$$', quality: '★★★★★', url: 'https://elevenlabs.io/pricing' },
 };
 const LLM_META = {
-    openai: { model: 'gpt-4o-mini', cost: '$$',  quality: '★★★★', url: 'https://platform.openai.com/docs/pricing' },
-    gemini: { model: '2.5 Flash', cost: '$', quality: '★★★',  url: 'https://ai.google.dev/pricing' },
+    openai:   { model: 'gpt-4o-mini',    cost: '$$',  quality: '★★★★', url: 'https://platform.openai.com/docs/pricing' },
+    gemini:   { model: '2.5 Flash',       cost: '$',   quality: '★★★',  url: 'https://ai.google.dev/pricing' },
+    deepseek: { model: 'DeepSeek Chat',   cost: '$',   quality: '★★★',  url: 'https://platform.deepseek.com/api-docs/pricing' },
 };
 
 function renderMeta(elId, meta) {
@@ -1316,22 +1508,25 @@ function updateLlmMeta() {
 }
 
 async function init() {
-    const [resResp, filesResp, jobsResp, projResp] = await Promise.all([
+    const [resResp, filesResp, jobsResp, projResp, topicsResp] = await Promise.all([
         fetch('/resources').then(r => r.json()).catch(() => ({ urls: [], texts: [] })),
         fetch('/files').then(r => r.json()).catch(() => ({ files: [] })),
         fetch('/jobs').then(r => r.json()).catch(() => ({ jobs: [] })),
         fetch('/projects').then(r => r.json()).catch(() => ({ projects: [] })),
+        fetch('/topics').then(r => r.json()).catch(() => ({ topics: [] })),
     ]);
     savedUrls  = resResp.urls  || [];
     savedTexts = resResp.texts || [];
     savedFiles = filesResp.files || [];
     projects   = projResp.projects || [];
     allJobs    = jobsResp.jobs || [];
+    savedTopics = topicsResp.topics || [];
     renderUrls();
     renderFiles();
     renderTexts();
     renderProjects();
     renderFilteredJobs();
+    renderSavedTopics();
 }
 
 applyPinnedPrefs();

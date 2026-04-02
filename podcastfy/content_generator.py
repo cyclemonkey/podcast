@@ -68,6 +68,14 @@ class LLMBackend:
                 max_output_tokens=max_output_tokens,
                 **common_params,
             )
+        elif "deepseek" in self.model_name.lower():
+            # DeepSeek uses an OpenAI-compatible API with a custom base URL
+            self.llm = ChatLiteLLM(
+                model=f"deepseek/{self.model_name}",
+                temperature=temperature,
+                api_key=os.environ.get("DEEPSEEK_API_KEY", ""),
+                api_base="https://api.deepseek.com",
+            )
         else:  # user should set api_key_label from input
             self.llm = ChatLiteLLM(
                 model=self.model_name,
