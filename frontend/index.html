@@ -233,6 +233,8 @@
         }
         .btn-sm:hover { border-color: #555; color: #e0e0e0; }
         .btn-sm.danger:hover { border-color: #c0392b; color: #e74c3c; }
+        .btn-sm.keep-active { border-color: #2ecc71; color: #2ecc71; }
+        .btn-sm.keep-active:hover { border-color: #27ae60; color: #27ae60; }
 
         .podcast-error { color: #f5a5a5; font-size: 0.82rem; }
 
@@ -693,6 +695,7 @@ function makeFileItem(f) {
         <input type="checkbox" class="resource-check" checked>
         <span class="resource-label" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
         <span class="resource-meta">${ext} · ${sz}</span>
+        <span class="resource-meta" style="cursor:pointer;color:${f.keep ? '#2ecc71' : '#555'}" onclick="toggleKeepFile('${f.id}',this)" title="Keep from auto-delete">${f.keep ? 'Kept' : 'Keep'}</span>
         <span class="resource-remove" onclick="deleteFile('${f.id}')">&times;</span>
     `;
     return el;
@@ -723,6 +726,23 @@ async function deleteFile(id) {
     await fetch('/files/' + id, { method: 'DELETE' });
     savedFiles = savedFiles.filter(f => f.id !== id);
     renderFiles();
+}
+
+async function toggleKeepFile(id, el) {
+    const f = savedFiles.find(f => f.id === id);
+    const newKeep = !(f && f.keep);
+    try {
+        const resp = await fetch('/files/' + id, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keep: newKeep }),
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const data = await resp.json();
+        if (f) f.keep = data.keep;
+        el.textContent = data.keep ? 'Kept' : 'Keep';
+        el.style.color = data.keep ? '#2ecc71' : '#555';
+    } catch (e) { /* ignore */ }
 }
 
 // ── Text snippets ─────────────────────────────────────────────────────────────
@@ -941,6 +961,7 @@ function makePodcastItem(job) {
                     ${job.gen_snapshot ? `<button class="btn-sm" onclick="loadSnapshot('${job.id}')">Next Episode</button>` : ''}
                     ${shareToken ? `<button class="btn-sm" onclick="shareJob('${shareToken}',this)">Share</button>` : ''}
                     <button class="btn-sm" onclick="editJob('${job.id}')">Edit</button>
+                    <button class="btn-sm${job.keep ? ' keep-active' : ''}" onclick="toggleKeepJob('${job.id}',this)">${job.keep ? 'Kept' : 'Keep'}</button>
                     <a class="btn-sm" href="${audioUrl}" download="${job.id}.mp3">Download</a>
                     <button class="btn-sm danger" onclick="deleteJob('${job.id}')">Delete</button>
                 </div>
@@ -996,7 +1017,25 @@ async function deleteJob(jobId) {
     }
 }
 
-// ── Share & Edit ─────────────────────────────────────────────────────────────
+// ── Keep / Share / Edit ──────────────────────────────────────────────────────
+async function toggleKeepJob(jobId, btn) {
+    const job = allJobs.find(j => j.id === jobId);
+    const newKeep = !(job && job.keep);
+    try {
+        const resp = await fetch(`/jobs/${jobId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keep: newKeep }),
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const updated = await resp.json();
+        const idx = allJobs.findIndex(j => j.id === jobId);
+        if (idx !== -1) allJobs[idx] = updated;
+        btn.textContent = updated.keep ? 'Kept' : 'Keep';
+        btn.classList.toggle('keep-active', !!updated.keep);
+    } catch (e) { showError('Failed to update: ' + e.message); }
+}
+
 function shareJob(token, btn) {
     const url = `${location.origin}/public/audio/${token}`;
     navigator.clipboard.writeText(url).then(() => {

@@ -480,7 +480,7 @@
                 const empty = document.getElementById('filesEmpty');
                 if (data.files.length) {
                     empty.style.display = 'none';
-                    for (const f of data.files) addFileItem(f.name, f.size, f.id, false);
+                    for (const f of data.files) addFileItem(f.name, f.size, f.id, false, f.keep);
                 }
             } catch (e) {}
         }
@@ -497,7 +497,7 @@
                 : (size / 1048576).toFixed(1) + ' MB';
         }
 
-        function addFileItem(name, size, id, uploading) {
+        function addFileItem(name, size, id, uploading, keep) {
             const list = document.getElementById('fileList');
             const empty = document.getElementById('filesEmpty');
             empty.style.display = 'none';
@@ -516,7 +516,8 @@
                 <span class="file-size">${formatSize(size)}</span>
                 ${uploading
                     ? '<span class="file-size">uploading...</span>'
-                    : `<span class="file-remove" onclick="removeFile(this,'${id}')" title="Delete">&times;</span>`
+                    : `<span class="file-size" style="cursor:pointer;color:${keep ? '#2ecc71' : '#555'}" onclick="toggleKeepFile(this,'${id}')" title="Keep from auto-delete">${keep ? 'Kept' : 'Keep'}</span>
+                       <span class="file-remove" onclick="removeFile(this,'${id}')" title="Delete">&times;</span>`
                 }
             `;
             list.appendChild(el);
@@ -535,6 +536,24 @@
                 showToast('File deleted.');
             } catch (e) {
                 showToast('Failed to delete file.', true);
+            }
+        }
+
+        async function toggleKeepFile(el, fileId) {
+            const isKept = el.textContent.trim() === 'Kept';
+            try {
+                const resp = await fetch('/files/' + fileId, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keep: !isKept }),
+                });
+                if (!resp.ok) throw new Error();
+                const data = await resp.json();
+                el.textContent = data.keep ? 'Kept' : 'Keep';
+                el.style.color = data.keep ? '#2ecc71' : '#555';
+                showToast(data.keep ? 'File will be kept.' : 'File auto-delete restored.');
+            } catch (e) {
+                showToast('Failed to update.', true);
             }
         }
 

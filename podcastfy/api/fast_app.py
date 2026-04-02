@@ -259,6 +259,97 @@ MAX_FILE_SIZE = 20 * 1024 * 1024
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 
+RETENTION_DAYS = int(os.getenv("RETENTION_DAYS", "180"))  # 6 months
+
+
+# ── Automatic cleanup of old files and episodes ─────────────────────────────
+
+def _run_cleanup() -> None:
+    """Delete files and completed episodes older than RETENTION_DAYS unless marked keep."""
+    cutoff = datetime.now(timezone.utc).timestamp() - (RETENTION_DAYS * 86400)
+    if not os.path.isdir(USER_DATA_DIR):
+        return
+    tokens = _load_share_tokens()
+    tokens_changed = False
+    for username_dir in os.listdir(USER_DATA_DIR):
+        user_path = os.path.join(USER_DATA_DIR, username_dir)
+        if not os.path.isdir(user_path) or username_dir.startswith("_"):
+            continue
+
+        # Clean old episodes
+        jobs_path = os.path.join(user_path, "jobs.json")
+        if os.path.isfile(jobs_path):
+            try:
+                with open(jobs_path) as f:
+                    jobs = json.load(f)
+            except (json.JSONDecodeError, FileNotFoundError):
+                jobs = []
+            kept_jobs = []
+            for job in jobs:
+                if job.get("keep"):
+                    kept_jobs.append(job)
+                    continue
+                ts = job.get("completed_at") or job.get("created_at", "")
+                try:
+                    job_time = datetime.fromisoformat(ts).timestamp()
+                except (ValueError, TypeError):
+                    kept_jobs.append(job)
+                    continue
+                if job_time >= cutoff:
+                    kept_jobs.append(job)
+                    continue
+                # Expired — delete audio file
+                if job.get("audio_file"):
+                    audio = os.path.join(user_path, "podcasts", job["audio_file"])
+                    if os.path.isfile(audio):
+                        os.remove(audio)
+                # Remove share token
+                token = job.get("share_token")
+                if token and token in tokens:
+                    del tokens[token]
+                    tokens_changed = True
+                logger.info("Cleanup: removed expired episode %s for %s", job.get("id"), username_dir)
+            if len(kept_jobs) != len(jobs):
+                with open(jobs_path, "w") as f:
+                    json.dump(kept_jobs, f)
+
+        # Clean old uploaded files
+        files_dir = os.path.join(user_path, "files")
+        if os.path.isdir(files_dir):
+            for fname in os.listdir(files_dir):
+                if fname.endswith(".meta"):
+                    continue
+                fpath = os.path.join(files_dir, fname)
+                if not os.path.isfile(fpath):
+                    continue
+                # Check keep flag
+                meta_path = fpath + ".meta"
+                try:
+                    with open(meta_path) as mf:
+                        meta = json.load(mf)
+                    if meta.get("keep"):
+                        continue
+                except (FileNotFoundError, json.JSONDecodeError):
+                    pass
+                # Check file age
+                file_mtime = os.path.getmtime(fpath)
+                if file_mtime >= cutoff:
+                    continue
+                os.remove(fpath)
+                if os.path.exists(meta_path):
+                    os.remove(meta_path)
+                logger.info("Cleanup: removed expired file %s for %s", fname, username_dir)
+
+    if tokens_changed:
+        _save_share_tokens(tokens)
+
+
+@app.on_event("startup")
+async def startup_cleanup():
+    """Run cleanup in background thread on startup."""
+    import threading
+    threading.Thread(target=_run_cleanup, daemon=True).start()
+
 
 # ── Background generation ─────────────────────────────────────────────────────
 
@@ -626,13 +717,38 @@ async def list_uploaded_files(request: Request):
         path = os.path.join(upload_dir, name)
         if os.path.isfile(path):
             original_name = name
+            keep = False
             try:
                 with open(path + ".meta") as mf:
-                    original_name = json.load(mf).get("name", name)
+                    meta = json.load(mf)
+                    original_name = meta.get("name", name)
+                    keep = meta.get("keep", False)
             except (FileNotFoundError, json.JSONDecodeError):
                 pass
-            files.append({"id": name, "name": original_name, "size": os.path.getsize(path)})
+            files.append({"id": name, "name": original_name, "size": os.path.getsize(path), "keep": keep})
     return {"files": files}
+
+
+@app.patch("/files/{file_id}")
+async def patch_file(file_id: str, request: Request, data: dict):
+    username   = _session_user(request) or "anonymous"
+    upload_dir = _user_upload_dir(username)
+    safe       = Path(file_id).name
+    path       = os.path.join(upload_dir, safe)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    meta_path = path + ".meta"
+    meta = {}
+    try:
+        with open(meta_path) as mf:
+            meta = json.load(mf)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    if "keep" in data:
+        meta["keep"] = bool(data["keep"])
+    with open(meta_path, "w") as mf:
+        json.dump(meta, mf)
+    return {"id": safe, "keep": meta.get("keep", False)}
 
 
 @app.delete("/files/{file_id}")
@@ -759,6 +875,8 @@ async def patch_job(job_id: str, request: Request, data: dict):
     for field in ("title", "description"):
         if field in data:
             job[field] = str(data[field])
+    if "keep" in data:
+        job["keep"] = bool(data["keep"])
     _save_jobs(username, jobs)
     return job
 
